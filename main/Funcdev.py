@@ -16,6 +16,7 @@ from wxpusher import WxPusher
 import BadDataCleaner
 import CoodiSys
 from CoodiSys import BOUND_LOCATION
+from folderHelper import cheek_local_phone_format, sync_phone_txt, normal_format_dict, normal_format_order
 from net_control.push_helper import UIDS, TOPIC_IDS
 from net_control.req_misc import input_with_timeout
 
@@ -49,114 +50,13 @@ headers_with_default_UA_new = {
 }
 
 # <editor-fold desc="Data Capture Section">
-"120.68976,27.91788 ,120.72077,27.93722"
+
 
 DEFAULT_COOLDOWN = 0.6
-TOKEN_LENGTH = 32
-ROOT_FOLDER = 'RecoveredBikeData/'
 
 """
 available_code,phoneNumber,last_phone_used_time,expired_code,LoginToken,last_LoginToken_used_time,CoolDown_time
 """
-normal_format_dict = {'PhoneNumber': -1, 'available_code': -1, 'last_phone_used_time': -1.0,
-                      'expired_code': -1, 'LoginToken': '', 'last_LoginToken_used_time': -1.0, 'CoolDown_time': -1.0}
-
-normal_format_order = ['PhoneNumber', 'available_code', 'last_phone_used_time',
-                       'LoginToken', 'expired_code', 'last_LoginToken_used_time', 'CoolDown_time']
-
-
-# <editor-fold desc="basic_txt operation">
-def create_blank_txt():
-    print('local_phone.txt is not found')
-    print('creating a blank phone list')
-    with open('/local_phone.txt', 'w'):
-        pass
-    if os.path.exists('/local_phone.txt'):
-        print('successfully creating a local_phone.txt')
-    else:
-        print('fail to create a local_phone.txt')
-
-
-def cheek_local_phone_format() -> int:
-    """
-    check text format
-    1.create one if None
-    2.return BAD LINE serial
-    """
-    print('cheek local_phone.txt file existence')
-    if os.path.exists("/main/local_phone.txt"):
-
-        with open("/main/local_phone.txt", "r") as f:
-            lineCounter = 0
-            line = f.readline()
-            while line != '':
-                line = line.split()
-                lineCounter += 1
-
-                print(f'current cheeking line {lineCounter} : {line}')
-                if len(line) != len(normal_format_order):
-                    print(f'bad params line {lineCounter}\n{line}\n')
-                    return lineCounter
-                line = f.readline()
-
-        print(f'[{lineCounter}] lines in total, No obvious error')
-        return -1
-    else:
-        create_blank_txt()
-        return 0
-
-
-def sync_phone_txt(add="/main/local_phone.txt"):
-    """
-    reset local_phone.txt
-    record phone number and then create a new local_phone.txt with other data reset to -1
-    """
-    with open(add, "r") as f:  # record all the phone numbers
-        lineCounter = 0
-        phone_number_list = []
-        line = f.readline()
-        while line != '':
-            line = line.split()
-            lineCounter += 1
-
-            print(f'current OverWriting line {lineCounter} : {line}')
-
-            phone_number_list.append(line[0])  # phone number list assemble
-            line = f.readline()
-
-    with open(add, "w") as f:  # draw the records to the text and sync other data
-        for phoneNumber in phone_number_list:
-            f.write(phoneNumber)
-            for ele in range(len(normal_format_order) - 2):
-                f.write(' -1')
-            f.write(f' {DEFAULT_COOLDOWN}\n')  # default cooldown time
-
-
-def get_all_lines_count(filenameAdd='/main/local_phone.txt') -> int:
-    """
-    Get the number of lines in a file
-    """
-    with open(filenameAdd, 'r') as f:
-        lines = f.readlines()
-    return len(lines)
-
-
-def get_lines_with_content_Count(filenameAdd='/main/local_phone.txt') -> int:
-    """
-
-    :param filenameAdd:
-    :return:
-    """
-    with open(filenameAdd, 'r') as f:
-        lines = f.readlines()
-        length = len(lines)
-        for line in lines:
-            if line == '\n':
-                length -= 1
-    return length
-
-
-# </editor-fold>
 
 
 # <editor-fold desc="HAL">
@@ -291,7 +191,7 @@ def load_local_phone_dict_list():
     """
     local_phone_dict_list = []
 
-    with open('local_phone.txt', 'r') as f:
+    with open(f'{phoneNumber_file_name}', 'r') as f:
 
         for i in range(get_all_lines_count()):
             line = f.readline()
@@ -310,7 +210,7 @@ def load_local_phone_dict_list():
     return local_phone_dict_list
 
 
-def write_local_phone_dict_list_to_file(dict_list: list, address='local_phone.txt'):
+def write_local_phone_dict_list_to_file(dict_list: list, address=f'{phoneNumber_file_name}'):
     """
     write local phone dict list to file
     :param dict_list:
