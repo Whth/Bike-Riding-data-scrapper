@@ -5,7 +5,8 @@
       <entry url="file://$PROJECT_DIR$">
         <entryData>
           <resourceRoots>
-            <path value="file://$PROJECT_DIR$/dataset/RecoveredBikeData" />
+            <path value="file://$PROJECT_DIR$/RecoveredBikeData" />
+            <path value="file://$PROJECT_DIR$/RecoveredBikeData/2022-10" />
           </resourceRoots>
         </entryData>
       </entry>
