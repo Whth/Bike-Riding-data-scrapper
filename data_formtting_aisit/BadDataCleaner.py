@@ -152,11 +152,11 @@ def tree_folder_to_list(root: str = '.', filter_ON=False) -> list:
     return resultList
 
 
-# print(tree_folder_to_list('L:\pycharm projects\master\dataset\RecoveredBikeData'))
+# print(tree_folder_to_list('L:\pycharm projects\master\main\RecoveredBikeData'))
 # bad_data = '2022-10-06 23:33	22000001096	27.921054	120.691456\n'
 #
 # print(check_is_good_bike(bad_data))
-# bad_data_txt = 'L:/pycharm projects/master/dataset/RecoveredBikeData/2022-10/02/allBikes.txt'
+# bad_data_txt = 'L:/pycharm projects/master/main/RecoveredBikeData/2022-10/02/allBikes.txt'
 # fix_bad_allBikes(bad_data_txt)
 def normal_data_clean() -> None:
     for file in tree_folder_to_list('L:\pycharm projects\master\dataset\RecoveredBikeData', filter_ON=True):
