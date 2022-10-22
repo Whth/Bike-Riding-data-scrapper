@@ -16,3 +16,4 @@ class FakeDataConstructor(object):
 
 if __name__ == '__main__':
     pass
+TEST_POINT = (120.695064, 27.916269)  # our main teaching building

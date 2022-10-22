@@ -4,7 +4,6 @@ import datetime
 import json
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 import matplotlib.image as mpimg  # mpimg 用于读取图片
 import matplotlib.pyplot as plt  # plt 用于显示图片
@@ -16,7 +15,8 @@ from wxpusher import WxPusher
 import BadDataCleaner
 import CoodiSys
 from CoodiSys import BOUND_LOCATION
-from folderHelper import cheek_local_phone_format, sync_phone_txt, normal_format_dict, normal_format_order
+from folderHelper import cheek_local_phone_format, sync_phone_txt, normal_format_dict, normal_format_order, \
+    open_CurTime_tree_folder
 from net_control.push_helper import UIDS, TOPIC_IDS
 from net_control.req_misc import input_with_timeout
 
@@ -416,99 +416,6 @@ def get_all_bikes(dict_list: list, loc_list: list = BOUND_LOCATION,
     return allBikes
 
 
-def get_all_bikes_MT(dict_list: list, loc_list: list = BOUND_LOCATION, stepLen: float = 0.0008) -> list:
-    """
-        no judge if the data obtained is in range
-      :param stepLen:
-      :param dict_list:
-      :param loc_list:
-      :return:
-      """
-    allBikes = []  # store result
-
-    points_list = rectangle_slice(loc_list=loc_list, step=stepLen)  # area slice
-
-    token_s_dict = loop_find_available_token(dict_list)
-    points_list_len = len(points_list)
-
-    extractStartTime = datetime.datetime.now()  # time Consumptions calc
-
-    point_serial = 0
-    startFrame = time.time()
-    with ThreadPoolExecutor(max_workers=len(dict_list)) as pool:  # divide the missions up
-        '''
-        this is a list is that contains all the point viewed bikes
-        '''
-        bike_raw_list_pieces = list(pool.map(getBikes_improved, points_list, loop_find_available_token(dict_list)))
-        print(bike_raw_list_pieces)
-    for list_pieces in bike_raw_list_pieces:
-
-        if list_pieces[0] == token_s_dict[normal_format_order[3]]:  # return equal token suggesting fail getBikes
-
-            update_token_status(token_s_dict, expired_code=1)  # update bad token status
-
-            updateResult = '## FAIL ##'
-
-        else:
-            allBikes.extend(list_pieces)
-            update_token_status(token_s_dict, token=token_s_dict[normal_format_order[3]])
-            updateResult = 'Success'
-
-        print(
-            f'point {point_serial}/{points_list_len}: {points_list[point_serial]} \r\n'
-            f'{updateResult}\r\n'
-            f'using {(time.time() - startFrame):.4f}s\r\n'
-            f'--------------------------------')
-        point_serial += 1
-        token_s_dict = loop_find_available_token(dict_list)
-    livingTIme = datetime.datetime.now() - extractStartTime
-    print(f'#################################\n'
-          f'Consumed time: {livingTIme.seconds}s\n'
-          f'Average time per point : {livingTIme.seconds / points_list_len}s'
-          f'\n#################################\n')
-
-    return allBikes
-
-
-def get_all_bikes_Astar(dict_list: list, loc_list: list = BOUND_LOCATION, stepLen: float = 0.0008) -> list:
-    """
-    no judge if the data obtained is in range
-    :param dict_list:
-    :param loc_list:
-    :param stepLen:
-    :return:
-    """
-    allBikes = []
-
-    init_point_list = rectangle_slice(loc_list=loc_list)
-
-    return allBikes
-
-
-def open_CurTime_tree_folder(rootFolder: str = ''):
-    """
-
-    :param rootFolder:
-    :return: the dir that creates
-    """
-    if rootFolder == '':
-        rootFolder = os.path.abspath('.')  # current directory
-    time_str = time.strftime('%Y-%m %d', time.localtime())
-    firstFolder = time_str.split()[0]
-    secondFolder = time_str.split()[1]
-    created_folder = f'{rootFolder}/{firstFolder}/{secondFolder}/'
-    if os.path.exists(created_folder):
-        return created_folder
-    else:
-        os.makedirs(created_folder)
-    if os.path.exists(created_folder):
-
-        print('timeTreeFolder has been created')
-        return created_folder
-    else:
-        raise
-
-
 def writeRes(allBikes, timestamp, storage_dir=ROOT_FOLDER, return_details=False):
     """
     功能：将单车数据追加写入文本文件存储,自动去重
@@ -556,6 +463,8 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
                              lastingDays: float = 1.,
                              loc_list: list = BOUND_LOCATION, notifications: bool = False, filter_ON: bool = False,
                              USE_NEW_VERSION: bool = False, WriteDownLog: bool = False, dispPlayData: bool = False):
+    if scanStep < 0.001:
+        raise Exception
     """
     功能：每隔两分钟获取一次高教园的所有单车信息并保存。
 
@@ -648,18 +557,6 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
             break
 
 
-def run_single(dict_list: list, interval: float = 0.0008, lastingDays: float = 1, loc_list: list = BOUND_LOCATION):
-    try:
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-
-        print(timestamp)
-
-        allBikes = get_all_bikes_MT(dict_list, stepLen=interval, loc_list=loc_list)
-        writeRes(allBikes, timestamp)
-
-    except KeyboardInterrupt:
-        print('Program EXITED')
-        return
 
 
 # </editor-fold>
@@ -677,6 +574,11 @@ def getTokenTest(test_times=1):
 
 
 def show_dict_list(dict_list: list) -> None:
+    """
+    display_bike list string
+    :param dict_list:
+    :return:
+    """
     print('################################################################')
     for a_dict in dict_list:
         print(a_dict)
@@ -769,19 +671,6 @@ def token_expired_check_timecheck(phone_data_dict: dict):
         return True
 
     return False
-
-
-def check_all_tokens_expires(dict_list: list):
-    """
-    Check if all tokens have expired
-
-    :param dict_list:
-    :return: expired_token_counter
-    """
-    expired_token_counter = 0
-    for data_dict in dict_list:
-        expired_token_counter += token_expired_check_timecheck(data_dict)
-    return expired_token_counter
 
 
 def check_token_available(data_dict: dict):
@@ -917,34 +806,12 @@ def token_echo_test(test_token, test_point=(BOUND_LOCATION[0], BOUND_LOCATION[1]
 
 
 if __name__ == "__main__":
-    # <editor-fold desc="FILE pre-check and load phones to memory">
+
     if cheek_local_phone_format() > 0:
         sync_phone_txt()
     a_origin_list = load_local_phone_dict_list()
     show_dict_list(a_origin_list)
-    # </editor-fold>
 
-    TEST_POINT = (120.695064, 27.916269)  # our main teaching building
-
-    # <editor-fold desc="Phone Data update">
-    # update_signal_data_dict(a_data_dict=a_origin_list[0])
-    # show_dict_list(a_origin_list)
-    # write_local_phone_dict_list_to_file(a_origin_list)
-    # massive_Update_phone_data_dict_list(a_origin_list)
-    # </editor-fold>
-
-    # <editor-fold desc="find radius">
-    # for eachToken in a_origin_list:
-    #     bike_data_dict_list = token_echo_test(eachToken[normal_format_order[3]], test_point=TEST_POINT)
-
-    # print(bike_data_dict_list[0])
-    # distant_list = []
-    # for a_dict in a_origin_list:
-    #     distant_list.append(a_dict['distance'])
-    # print(distant_list)
-    # print(f'the length of distant_list is {len(distant_list)}')
-    # print(f'the max distance is {max(distant_list)}')
-    # </editor-fold>
 
     # <editor-fold desc="MAIN Section">
 

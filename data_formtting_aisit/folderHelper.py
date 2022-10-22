@@ -1,4 +1,5 @@
 import os
+import time
 
 from Funcdev import DEFAULT_COOLDOWN
 
@@ -49,13 +50,13 @@ def get_lines_with_content_Count(filenameAdd) -> int:
     return length
 
 
-def cheek_local_phone_format() -> int:
+def cheek_local_phone_format(raiseExceptions=False) -> int:
     """
     check text format
     1.create one if None
     2.return BAD LINE serial
-    -1 normal
-    0 new blank
+    True normal/new blank
+
     """
 
     print(f'cheek {phoneNumber_file_name} file existence')
@@ -72,8 +73,10 @@ def cheek_local_phone_format() -> int:
                     print('\tok!')
                 else:
                     print('####bad line###')  # bad line no tolerance
-                    raise Exception
+                    if raiseExceptions:
+                        raise Exception
 
+                    return lineCounter
             print(f'[{lineCounter}] lines with content in total, No obvious error')
         return -1
     else:
@@ -107,3 +110,27 @@ def sync_phone_txt(add=phoneNumber_file_path):
             for ele in range(len(normal_format_order) - 2):
                 f.write(f' {DEFAULT_VALUE}')
             f.write(f' {DEFAULT_COOLDOWN}\n')  # default cooldown time
+
+
+def open_CurTime_tree_folder(rootFolder: str = ''):
+    """
+
+    :param rootFolder:
+    :return: the dir that creates
+    """
+    if rootFolder == '':
+        rootFolder = os.path.abspath('.')  # current directory
+    time_str = time.strftime('%Y-%m %d', time.localtime())
+    firstFolder = time_str.split()[0]
+    secondFolder = time_str.split()[1]
+    created_folder = f'{rootFolder}/{firstFolder}/{secondFolder}/'
+    if os.path.exists(created_folder):
+        return created_folder
+    else:
+        os.makedirs(created_folder)
+    if os.path.exists(created_folder):
+
+        print('timeTreeFolder has been created')
+        return created_folder
+    else:
+        raise
