@@ -9,7 +9,6 @@ import matplotlib.image as mpimg  # mpimg 用于读取图片
 import matplotlib.pyplot as plt  # plt 用于显示图片
 import numpy as np
 import requests
-from fake_useragent import UserAgent
 from wxpusher import WxPusher
 
 import BadDataCleaner
@@ -19,41 +18,11 @@ from folderHelper import cheek_local_phone_format, sync_phone_txt, normal_format
     open_CurTime_tree_folder
 from net_control.push_helper import UIDS, TOPIC_IDS
 from net_control.req_misc import input_with_timeout
+from req_misc import a_random_header
 from tokenMannager import loop_find_available_token, update_token_status, update_phone_status
-
-headers_with_default_UA = {"Accept": "application/json, text/plain, */*", "Accept-Encoding": "br, gzip, deflate",
-                           "Accept-Language": "zh-cn",
-                           "Connection": "close",
-                           "Content-Length": "131",
-                           "Content-Type": "text/plain;charset=UTF-8",
-                           "Host": "api.ttbike.com.cn",
-                           "Origin": "http://m.ttbike.com.cn",
-                           "Referer": "http://m.ttbike.com.cn/ebike-h5/latest/index.html",
-                           "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 12_0 like Mac OS X) AppleWebKit/605.1.15 "
-                                         "(KHTML, "
-                                         "like Gecko) Version/12.0 MQQBrowser/8.8.2 Mobile/16A5345f Safari/604.1 "
-                                         "MttCustomUA/2 "
-                                         "QBWebViewType/1 WKType/1"}
-
-headers_with_default_UA_new = {
-    'accept': 'application/json, text/plain, */*',
-    'accept-encoding': 'gzip, deflate, br',
-    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    'content-length': '325',
-    'content-type': 'text/plain;charset=UTF-8',
-    'origin': 'http://m.ttbike.com.cn',
-    'referer': 'http://m.ttbike.com.cn/',
-    'requestid': '3BFuzxLoDOwqO4D',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'cross-site',
-    'user-agent': ''
-}
 
 # <editor-fold desc="Data Capture Section">
 
-
-DEFAULT_COOLDOWN = 0.6
 
 """
 available_code,phoneNumber,last_phone_used_time,expired_code,LoginToken,last_LoginToken_used_time,CoolDown_time
@@ -64,10 +33,6 @@ available_code,phoneNumber,last_phone_used_time,expired_code,LoginToken,last_Log
 
 
 # <editor-fold desc="net_work_components">
-def a_random_header():
-    tempHeader = copy.deepcopy(headers_with_default_UA)
-    tempHeader['User-Agent'] = UserAgent().random
-    return tempHeader.copy()
 
 
 def sendSMSCode_ttBike(phone):

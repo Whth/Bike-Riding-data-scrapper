@@ -1,7 +1,7 @@
 import os
 import time
 
-from Funcdev import DEFAULT_COOLDOWN
+from tokenMannager import DEFAULT_COOLDOWN
 
 ASSET_ROOT_FOLDER = 'RecoveredBikeData/'
 
@@ -16,13 +16,6 @@ so below are the new phone numbers format
 XD
 """
 DEFAULT_VALUE = -1.0
-
-normal_format_dict = {'PhoneNumber': DEFAULT_VALUE, 'last_phone_used_time': DEFAULT_VALUE,
-                      'expired_code': DEFAULT_VALUE, 'LoginToken': '', 'last_LoginToken_used_time': DEFAULT_VALUE,
-                      'CoolDown_time': DEFAULT_VALUE}
-
-normal_format_order = ['PhoneNumber', 'last_phone_used_time',
-                       'LoginToken', 'expired_code', 'last_LoginToken_used_time', 'CoolDown_time']
 
 
 def get_all_lines_count(filenameAdd) -> int:

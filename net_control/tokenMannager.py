@@ -3,7 +3,48 @@ import warnings
 
 from CoodiSys import BOUND_LOCATION
 from Funcdev import getBikes_improved, massive_Update_phone_data_dict_list
-from folderHelper import normal_format_order, get_lines_with_content_Count
+from folderHelper import get_lines_with_content_Count
+
+
+class phoneNumber(object):
+    DEFAULT_COOLDOWN = 0.6  # to restrict to max requests per seconds
+    HALL_LAST_SMS_TIME = None
+
+    def __init__(self, phone_number, token='', cooldown=DEFAULT_COOLDOWN):
+        """
+        :param phone_number:
+        :param token:phone_number:
+        """
+        self.HALL_LAST_SMS_TIME = time.time()  # for SMS blocking
+
+        self.phone_number = phone_number  #
+
+        self.token = token
+        self.token_last_time = time.time()
+
+        self.tokenUsable = bool(token)
+
+    def update_token(self, token):
+        self.token = token
+        self.token_last_time = time.time()
+        return
+
+    def get_token(self):
+        """
+        update token and return token
+        :return:
+        """
+        self.token_last_time = time.time()
+        return self.token
+
+    def get_token_last_usedTime(self):
+        return self.token_last_time
+
+    def token_echo_test(self, printDetail=False) -> bool:
+        """
+
+        :return:
+        """
 
 
 def token_echo_test(test_token, test_point=(BOUND_LOCATION[0], BOUND_LOCATION[1])):
@@ -37,7 +78,12 @@ def check_token_usable_with_net(token: str, test_point: list = (120.68976, 27.91
 
 
 def check_token_coolDown(data_dict: dict):
-    passedTime = time.time() - data_dict[normal_format_order[5]]
+    """
+
+    :param data_dict:
+    :return:
+    """
+    passedTime = time.time() - data_dict[normal_format_order[-2]]
 
     # breakpoint()
     if passedTime > data_dict[normal_format_order[6]]:
