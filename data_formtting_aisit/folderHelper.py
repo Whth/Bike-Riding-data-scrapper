@@ -3,7 +3,7 @@ import time
 
 from Funcdev import DEFAULT_COOLDOWN
 
-ROOT_FOLDER = 'RecoveredBikeData/'
+ASSET_ROOT_FOLDER = 'RecoveredBikeData/'
 
 phoneNumber_file_name = 'local_phone.txt'
 phoneNumber_file_pdir = 'main/'
@@ -112,7 +112,7 @@ def sync_phone_txt(add=phoneNumber_file_path):
             f.write(f' {DEFAULT_COOLDOWN}\n')  # default cooldown time
 
 
-def open_CurTime_tree_folder(rootFolder: str = ''):
+def open_CurTime_tree_folder(rootFolder: str = ASSET_ROOT_FOLDER):
     """
 
     :param rootFolder:
@@ -134,3 +134,8 @@ def open_CurTime_tree_folder(rootFolder: str = ''):
         return created_folder
     else:
         raise
+
+
+if __name__ == '__main__':
+    if cheek_local_phone_format() > 0:
+        sync_phone_txt(phoneNumber_file_path)
