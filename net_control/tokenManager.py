@@ -1,3 +1,5 @@
+import json
+import os
 import time
 
 from Funcdev import massive_Update_phone_data_dict_list
@@ -33,10 +35,13 @@ class PhoneNumber(object):
         self.token_last_time = time.time()
         return
 
-    def syc_last_time(self):
+    def syc_token_last_time(self):
         self.token_last_time = time.time()
 
-    def get_token(self):
+    def syc_HALL_LAST_SMS_TIME(self):
+        self.HALL_LAST_SMS_TIME = time.time()
+
+    def get_token(self, ):
         """
         withCoolDown
         update token and return token
@@ -47,19 +52,36 @@ class PhoneNumber(object):
         if passedTime > self.tokenCoolDown:
 
             print(f'{self.phone_number}: TOKEN available|| Passed time: {passedTime:.3f}s > {self.tokenCoolDown}')
-            self.syc_last_time()  # syc and return token
+            self.syc_token_last_time()  # syc and return token
             return self.token
         else:
             print(f'{self.phone_number}: token not available')
 
             return ''
 
+    def get_phone_number(self, syc_sms=False):
+        if syc_sms:
+            self.syc_HALL_LAST_SMS_TIME()
+        return self.phone_number
 
-class Manager(object, PhoneNumber):
-    def __init__(self, file):
+    def create_phone_number_dict(self):
+        data_dict = {
+            'phoneNumber': self.phone_number,
+            'token': self.token,
+            'token_last_time': self.token_last_time,
+            'tokenCooldown': self.tokenCoolDown
+        }
+        return data_dict
 
 
+class TokenManager(object, PhoneNumber):
+    """
 
+    """
+
+    def __init__(self, text_path):
+        if os.path.exists(text_path):
+            phoneBook = json.loads(text_path)
 
 
 def loop_find_available_token(dict_list: list, failCounterON=False) -> dict:
@@ -92,16 +114,3 @@ def loop_find_available_token(dict_list: list, failCounterON=False) -> dict:
             break
 
         # normal_sleep(DEFAULT_COOLDOWN / 3)
-
-
-def update_token_status(phone_data_dict: dict, token: str = '', expired_code=0):
-    phone_data_dict[normal_format_order[3]] = token
-    phone_data_dict[normal_format_order[4]] = expired_code
-    phone_data_dict[normal_format_order[5]] = time.time()
-    return phone_data_dict
-
-
-def update_phone_status(phone_data_dict: dict, available_code):
-    phone_data_dict[normal_format_order[1]] = available_code
-    phone_data_dict[normal_format_order[2]] = time.time()
-    return phone_data_dict

@@ -1,7 +1,7 @@
 import os
 import time
 
-from tokenMannager import DEFAULT_COOLDOWN
+from tokenManager import DEFAULT_COOLDOWN
 
 ASSET_ROOT_FOLDER = 'RecoveredBikeData/'
 
