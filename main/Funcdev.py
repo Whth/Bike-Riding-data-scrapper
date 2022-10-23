@@ -7,17 +7,12 @@ import time
 
 import matplotlib.image as mpimg  # mpimg 用于读取图片
 import matplotlib.pyplot as plt  # plt 用于显示图片
-import numpy as np
 import requests
-from wxpusher import WxPusher
 
 import BadDataCleaner
 import CoodiSys
-from CoodiSys import BOUND_LOCATION
+from CoodiSys import BOUND_LOCATION, rectangle_slice
 from folderHelper import cheek_local_phone_format, sync_phone_txt
-
-open_CurTime_tree_folder
-from net_control.push_helper import UIDS, TOPIC_IDS
 from net_control.req_misc import input_with_timeout
 from req_misc import a_random_header
 from tokenManager import loop_find_available_token, update_token_status, update_phone_status
@@ -201,67 +196,6 @@ def write_local_phone_dict_list_to_file(dict_list: list, address=f'{phoneNumber_
 
 
 # <editor-fold desc="Function Updates">
-
-
-def rectangle_slice(loc_list: list = BOUND_LOCATION, step=0.0009,
-                    disPlayPic: bool = False) -> list:
-    """
-    attention: This function will not function properly when called with a line_liked tangle,demanding img improvements
-    BOUND_LOCATION: defined in the other docs
-    :param disPlayPic:
-    :param step:
-    :param loc_list: containing two conner coordinates
-    :return: node_list containing point within the rectangle defined by two conner
-
-    lat
-    |
-    |
-    |_______lng
-    """
-    node_list = []
-    Node = [0, 0]
-    # print(f'{loc_list}')
-    latRange = np.arange(loc_list[1], loc_list[3], step)
-    lngRange = np.arange(loc_list[0], loc_list[2], step)
-
-    total_nodes_counter = len(lngRange) * len(latRange)
-    print(f'the monitoring area contains {total_nodes_counter}')
-    for i in range(len(lngRange)):
-        for j in range(len(latRange)):
-            tempNode = copy.deepcopy(Node)
-            tempNode[0] = lngRange[i]  # x
-            tempNode[1] = latRange[j]  # y
-            node_list.append(tempNode.copy())
-    if disPlayPic:
-        data_display_multiplier = 1
-
-        plt.figure(figsize=(len(lngRange) / 1.2, len(latRange) / 1.2), dpi=130)
-
-        plt.axis('equal')
-
-        for node in node_list:
-            plt.scatter(node[0], node[1], s=5)
-            plt.scatter(node[0] * data_display_multiplier, node[1] * data_display_multiplier, alpha=0.5, s=2000)
-        plt.grid()
-        plt.suptitle(f"({len(lngRange)}X{len(latRange)}) {len(node_list)} Points", x=0.12, y=0.98, fontsize=16,
-                     color='red')
-        plt.title(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
-        plt.xlabel(f'Longitude (deg*{data_display_multiplier})', loc='left')
-        plt.ylabel(f'Latitude (deg*{data_display_multiplier})', loc='top')
-        plt.show()
-    return node_list
-
-
-def multiTangle_slice(node_list: list, loc_list: list, disPlayPic: bool = False):
-    """
-
-    :param node_list:
-    :param loc_list:
-    :param disPlayPic:
-    :return:
-    """
-
-    pass
 
 
 def check_point_in_tangle(point: list, tangle: list) -> bool:
@@ -502,16 +436,7 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
             time.sleep(restTime)
             # <editor-fold desc="Wx commit sec">
             if notifications:
-                WxPusher.send_message(f'NormalFormatDBikes: {bike_count_detail[0]}\n'
-                                      f'DuplicatedBikes: {bike_count_detail[1]}\n'
-                                      f'ALL AREA TotalDetected: {bike_count_detail[0] + bike_count_detail[1]}\n'
 
-
-                                      f'timestamp: {timestamp}\n'
-                                      f'NextCheckTime: {nextTime.strftime("%Y-%m-%d %H:%M")}',
-                                      uids=UIDS,
-                                      topic_ids=TOPIC_IDS,
-                                      token='AT_7gneRS02ois8YkgVWeCS0Q9iEV3Lq4Xl')
             # </editor-fold>
 
             if datetime.datetime.now() > endDay:
@@ -542,18 +467,6 @@ def radar_scan() -> None:
 
 # <editor-fold desc="TEST section">
 
-
-def show_dict_list(dict_list: list) -> None:
-    """
-    display_bike list string
-    :param dict_list:
-    :return:
-    """
-    print('################################################################')
-    for a_dict in dict_list:
-        print(a_dict)
-    print('################################################################\n')
-    return
 
 
 def display_bikes_on_map(bikes_list: list, area: list, mapTitle: str = None, saveImage: bool = False) -> None:
