@@ -14,8 +14,9 @@ from wxpusher import WxPusher
 import BadDataCleaner
 import CoodiSys
 from CoodiSys import BOUND_LOCATION
-from folderHelper import cheek_local_phone_format, sync_phone_txt, normal_format_dict, normal_format_order, \
-    open_CurTime_tree_folder
+from folderHelper import cheek_local_phone_format, sync_phone_txt
+
+open_CurTime_tree_folder
 from net_control.push_helper import UIDS, TOPIC_IDS
 from net_control.req_misc import input_with_timeout
 from req_misc import a_random_header
