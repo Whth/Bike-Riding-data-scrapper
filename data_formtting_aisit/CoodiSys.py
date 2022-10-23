@@ -20,6 +20,9 @@ class FakeDataConstructor(object):
     def __init__(self):
         self.fakeDataList = []
 
+class TangleScrapper(object):
+
+    def __init__(self)
 
 class TangleScrapper(object):
 
