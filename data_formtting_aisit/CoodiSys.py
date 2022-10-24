@@ -1,5 +1,6 @@
 import copy
 import datetime
+import warnings
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -23,11 +24,15 @@ class FakeDataConstructor(object):
 class TangleScrapper(object):
 
     def __init__(self, loc_list: list = BOUND_LOCATION):
+        """
+        default constructor op on the whole school area
+        :param loc_list:
+        """
         self.loc_list = loc_list,
 
         pass
 
-    def rectangle_slice(self, step=0.0009,
+    def rectangle_slice(self, step=0.0011,
                         disPlayPic: bool = False) -> list:
         """
         attention: This function will not function properly when called with a line_liked tangle,demanding img improvements
@@ -42,6 +47,10 @@ class TangleScrapper(object):
         |
         |_______lng
         """
+        MIN_INTERVal = 0.0011
+        if step < MIN_INTERVal:
+            warnings.warn(f'interval for step is too low')
+
         node_list = []
         Node = [0, 0]
 
@@ -65,15 +74,35 @@ class TangleScrapper(object):
 
             for node in node_list:
                 plt.scatter(node[0], node[1], s=5)
-                plt.scatter(node[0] * data_display_multiplier, node[1] * data_display_multiplier, alpha=0.5, s=2000)
+                plt.scatter(node[0], node[1], alpha=0.5, s=2000)
+
             plt.grid()
-            plt.suptitle(f"({len(lngRange)}X{len(latRange)}) {len(node_list)} Points", x=0.12, y=0.98, fontsize=16,
-                         color='red')
+
+            """
+            labeling
+            """
+            plt.suptitle(f"({len(lngRange)}X{len(latRange)}) {len(node_list)} Points", fontsize=16, color='blue')
             plt.title(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
-            plt.xlabel(f'Longitude (deg*{data_display_multiplier})', loc='left')
-            plt.ylabel(f'Latitude (deg*{data_display_multiplier})', loc='top')
+            plt.xlabel(f'Longitude deg', loc='left')
+            plt.ylabel(f'Latitude deg', loc='top')
+
             plt.show()
         return node_list
+
+    def tree_slice(self):
+        """
+
+        :return:
+        """
+        points_list = []
+
+        init_points = self.rectangle_slice()
+
+        root_points = []
+
+        for init_point in init_points:
+
+        return points_list
 
 
 if __name__ == '__main__':
