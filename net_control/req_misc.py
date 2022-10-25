@@ -71,6 +71,7 @@ def a_random_header():
     tempHeader['User-Agent'] = UserAgent().random
     return tempHeader.copy()
 
+
 class WeatherCop(object):
     """
     get you the current weather information
@@ -90,5 +91,3 @@ class WeatherCop(object):
 
 if __name__ == '__main__':
     WeatherCop()
-
-

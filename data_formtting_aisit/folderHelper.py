@@ -1,8 +1,6 @@
 import os
 import time
 
-from tokenManager import DEFAULT_COOLDOWN
-
 ASSET_ROOT_FOLDER = 'RecoveredBikeData/'
 
 phoneNumber_file_name = 'local_phone.txt'
