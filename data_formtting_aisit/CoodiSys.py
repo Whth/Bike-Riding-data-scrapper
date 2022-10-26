@@ -160,13 +160,21 @@ class TangleScrapper(object):
             manager = tokenManager.TokenManager(phoneBook_path)
             for init_point in init_points:
                 point_viewed_bikes = getBikes_reformed(init_point, manager.loop_token())
-                for bike in point_viewed_bikes:
-                    if bikeNo_dict.get(bike['bikeNo']):
-                        bike_info = bikeNo_dict[bike['bikeNo']]
-                        bike_info[0], bike_info[1] = bike['lng'], bike['lat']
-                        bike_info[2] += 1
+                if len(point_viewed_bikes) > 0:
 
-            bikeNo_list =
+                    for bike in point_viewed_bikes:
+
+                        if bikeNo_dict.get(bike['bikeNo']):
+                            bike_info = bikeNo_dict[bike['bikeNo']]
+                            bike_info[0], bike_info[1] = bike['lng'], bike['lat']
+                            bike_info[2] += 1
+                        else:
+                            bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], 1]
+                else:
+                    continue
+
+            bikeNo_list = list(bikeNo_dict.keys())
+
             return points_list
 
 
