@@ -67,23 +67,6 @@ def sendSMSCode_ttBike(phone):
     return status
 
 
-def getToken_ttBike(phone, code) -> str:
-    """
-    功能：输入手机号和短信验证码，模拟用户登陆，获取token
-    1.传入手机号和对应的短信验证码
-    2.如果登陆成功，返回token，否则显示异常信息
-    """
-    session = requests.session()
-
-    login_url = 'https://api.ttbike.com.cn/auth?user.account.login'
-    login_data = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 1, "action": "user.account.login",
-                  "mobile": phone, "code": code, "picCode": {"cityCode": "0577", "city": "温州市", "adCode": "330304"}}
-
-    r = session.post(login_url, headers=a_random_header(), data=json.dumps(login_data), timeout=6)
-    print(r.text)
-    token = json.loads(r.text)["data"]["token"]
-    print(f'获取token成功,the token is: {token}')
-    return token
 
 
 def getBikes_improved(point_coordinates: list, token: str, USE_NEW_VERSION=False) -> list:

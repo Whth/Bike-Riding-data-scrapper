@@ -8,6 +8,7 @@ import requests
 from matplotlib import pyplot as plt
 
 import req_misc
+import tokenManager
 
 SOUTHERN_SCH = [120.697855, 27.919326, 120.707664, 27.926667]
 BOUND_LOCATION = [120.691208, 27.913032, 120.709791, 27.931309]
@@ -26,14 +27,14 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
     2.如果顺利，返回经纬度周围500米的所有单车信息，否则显示异常信息
     """
 
-    get_bike_data = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 1,
-                     "action": "user.ride.nearBikes",
-                     "lng": point_coordinates[0], "lat": point_coordinates[1],
-                     "currentLng": point_coordinates[0], "currentLat": point_coordinates[1],
-                     "cityCode": "0577", "adCode": "330304", "token": token
-                     }
+    req_load = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 1,
+                "action": "user.ride.nearBikes",
+                "lng": point_coordinates[0], "lat": point_coordinates[1],
+                "currentLng": point_coordinates[0], "currentLat": point_coordinates[1],
+                "cityCode": "0577", "adCode": "330304", "token": token
+                }
 
-    get_bike_data_new = {
+    req_load_new = {
         "version": "6.17.0", "from": "h5", "systemCode": 63, "platform": 1,
         "action": "user.ride.nearBikes",
         "lng": point_coordinates[0], "lat": point_coordinates[1],
@@ -41,13 +42,14 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
         "adCode": "330304", "cityCode": "0577", "token": token,
         "ticket": "MTY3MjQxMjQ3Mg==.su9UiPSWh6VGUPHMqk8tpmD3wpgVr8eB464cPOT/J9o="
     }
+    # well the tiket is by the account
     if USE_NEW_VERSION:
-        get_bike_data = get_bike_data_new
+        req_load = req_load_new
 
     get_bike_url = 'https://api.ttbike.com.cn/api?user.ride.nearBikes'
-    bikeData_return = requests.post(get_bike_url, headers=req_misc.a_random_header(), data=json.dumps(get_bike_data),
+    bikeData_return = requests.post(get_bike_url, headers=req_misc.a_random_header(), data=json.dumps(req_load),
                                     timeout=5)
-    print(f'Server Echoing status:{bikeData_return}')
+
     Bike_raw_data_dict = json.loads(bikeData_return.text)  # return type is dict
 
     """
@@ -63,11 +65,12 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
         # print(bikeData_return.text)
         print(f'## BAD TOKEN ## : {token}')
         return [token]
+
+
 class FakeDataConstructor(object):
 
     def __init__(self):
         self.fakeDataList = []
-
 
 
 class TangleScrapper(object):
@@ -80,7 +83,6 @@ class TangleScrapper(object):
         self.loc_list = loc_list,
 
         pass
-
 
     def rectangle_slice(self, step=0.0011,
                         disPlayPic: bool = False) -> list:
@@ -138,7 +140,7 @@ class TangleScrapper(object):
             plt.show()
         return node_list
 
-    def tree_slice(self, usingMethod=1):
+    def tree_slice(self, phoneBook_path, usingMethod=1):
         """
 
         :return:
@@ -149,15 +151,22 @@ class TangleScrapper(object):
             dict for de duplicate
             """
             bikeNo_dict = {}  # storing the lng and lat and detected times
-            data_formatting = []
+            data_formatting = ['lng', 'lat', 'detectedBikes']
             points_list = []
 
             init_points = self.rectangle_slice()
 
             root_points = []
-
+            manager = tokenManager.TokenManager(phoneBook_path)
             for init_point in init_points:
-                point_view =
+                point_viewed_bikes = getBikes_reformed(init_point, manager.loop_token())
+                for bike in point_viewed_bikes:
+                    if bikeNo_dict.get(bike['bikeNo']):
+                        bike_info = bikeNo_dict[bike['bikeNo']]
+                        bike_info[0], bike_info[1] = bike['lng'], bike['lat']
+                        bike_info[2] += 1
+
+            bikeNo_list =
             return points_list
 
 

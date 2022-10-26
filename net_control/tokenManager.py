@@ -1,7 +1,11 @@
 import json
 import os
 import time
+import warnings
 
+import requests
+
+import req_misc
 from Funcdev import massive_Update_phone_data_dict_list
 from folderHelper import get_lines_with_content_Count
 
@@ -9,21 +13,30 @@ from folderHelper import get_lines_with_content_Count
 class PhoneNumber(object):
     DEFAULT_COOLDOWN = 0.6  # to restrict to max requests per seconds
     HALL_LAST_SMS_TIME = None
+    phoneBooks = []
 
-    def __init__(self, phone_number, token='', cooldown=DEFAULT_COOLDOWN):
+    def __init__(self, phone_number, token='_', cooldown=DEFAULT_COOLDOWN, tokenAutoUpdate: bool = True):
         """
         :param phone_number:
         :param token:phone_number:
         """
-        self.HALL_LAST_SMS_TIME = time.time()  # for SMS blocking
 
         self.phone_number = phone_number  #
 
-        self.token = token
-        self.token_last_time = time.time()
-
         self.tokenCoolDown = cooldown
-        self.tokenUsable = bool(token)  # default input token is always usable
+
+        if token:
+
+            self.token = token
+        elif tokenAutoUpdate:
+            self.token = self.request_newToken(self.send_SMS())
+            self.get_token()
+        self.token_last_time = time.time()
+        self.HALL_LAST_SMS_TIME = time.time()  # for SMS blocking
+
+        self.tokenUsable = bool(token == '_')  # default input token is always usable
+
+        self.phoneBooks.append(self.create_phone_number_dict())  # add to new phone_number to the book
 
     def update_token(self, token):
         """
@@ -41,7 +54,7 @@ class PhoneNumber(object):
     def syc_HALL_LAST_SMS_TIME(self):
         self.HALL_LAST_SMS_TIME = time.time()
 
-    def get_token(self, ):
+    def get_token(self):
         """
         withCoolDown
         update token and return token
@@ -64,9 +77,50 @@ class PhoneNumber(object):
             self.syc_HALL_LAST_SMS_TIME()
         return self.phone_number
 
+    def send_SMS(self) -> bool:
+        """
+
+        :return: success code 10
+        """
+        apiAdd = 'https://api.ttbike.com.cn/auth?user.account.sendCodeV2'
+        req_load = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 6,
+                    "action": "user.account.sendCodeV2", "mobile": self.phone_number, "capText": ""}
+        head = req_misc.a_random_header()
+        echo = requests.post(apiAdd, headers=head, data=json.dumps(req_load), timeout=6)
+
+        if 'ok' in echo:
+            print('Message Sent')
+            return True
+        else:
+            print('Message fail to send')
+            return False
+
+    def request_newToken(self, code) -> bool:
+        """
+        功能：输入手机号和短信验证码，模拟用户登陆，获取token
+        1.传入手机号和对应的短信验证码
+        update token
+        """
+
+        login_url = 'https://api.ttbike.com.cn/auth?user.account.login'
+        login_data = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 1, "action": "user.account.login",
+                      "mobile": self.phone_number, "code": code,
+                      "picCode": {"cityCode": "0577", "city": "温州市", "adCode": "330304"}}
+
+        r = requests.post(login_url, headers=req_misc.a_random_header(), data=json.dumps(login_data), timeout=6)
+
+        # print(r.text)
+        try:
+            self.token = json.loads(r.text)["data"]["token"]
+        except:
+            warnings.warn('bad SMScode')
+            return False
+        print(f'获取token成功,the token is: {self.token}')
+        return True
+
     def create_phone_number_dict(self):
         data_dict = {
-            'phoneNumber': self.phone_number,
+            'phoneNumber': self.phone_number.copy(),
             'token': self.token,
             'token_last_time': self.token_last_time,
             'tokenCooldown': self.tokenCoolDown
@@ -74,14 +128,27 @@ class PhoneNumber(object):
         return data_dict
 
 
-class TokenManager(object, PhoneNumber):
+class TokenManager(object):
     """
-
+    use a book file
     """
 
     def __init__(self, text_path):
         if os.path.exists(text_path):
-            phoneBook = json.loads(text_path)
+            self.phoneBook: list = json.loads(text_path)
+        self.phoneBook.length = len(self.phoneBook)  # store length
+        print(f'phoneBook Length{self.phoneBook.length} ')
+
+    def loop_token(self):
+        """
+        loop find usable token and sleep if not found
+        :return:
+        """
+
+        while True:
+            for phone_dict in enumerate(self.phoneBook):
+                phone_dict.
+            pass
 
 
 def loop_find_available_token(dict_list: list, failCounterON=False) -> dict:
