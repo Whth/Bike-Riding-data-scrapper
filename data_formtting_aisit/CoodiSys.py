@@ -1,6 +1,7 @@
 import copy
 import datetime
 import json
+import random
 import warnings
 
 import numpy as np
@@ -160,9 +161,12 @@ class TangleScrapper(object):
             manager = tokenManager.TokenManager(phoneBook_path)
             for init_point in init_points:
                 point_viewed_bikes = getBikes_reformed(init_point, manager.loop_token())
-                if len(point_viewed_bikes) > 0:
+                bikesCount = len(point_viewed_bikes)
+                if bikesCount > 0:
+                    a_random_bike = point_viewed_bikes[random.randint(0, bikesCount)]  # random get a bike from the
+                    root_points.append([a_random_bike['lng'], a_random_bike['lat']])
 
-                    for bike in point_viewed_bikes:
+                    for bike in point_viewed_bikes:  # record the bike detectedCount
 
                         if bikeNo_dict.get(bike['bikeNo']):
                             bike_info = bikeNo_dict[bike['bikeNo']]
