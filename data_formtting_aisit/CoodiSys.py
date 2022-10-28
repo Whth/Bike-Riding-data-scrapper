@@ -21,7 +21,8 @@ A_AREA = [120.700832, 27.925936, 120.703653, 27.927596]
 B_AREA = [120.70381, 27.929415, 120.708912, 27.932558]
 
 
-def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False) -> list:
+def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False,
+                      INSERT_TIMESTAMP: bool = False, ) -> list:
     """
     功能：获取某一经纬度周边500(?)米的所有单车信息
     1.传入经纬度和token值
@@ -58,9 +59,16 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
     passCode = 0
     expiredCode = 133
     """
+    bike_data_list = Bike_raw_data_dict['data']
+    time_stamp_key = 'timeStamp'
+    if INSERT_TIMESTAMP:  # insert timestamp into data
+        timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')  # timestamp for this lap
+        for bike_dict in enumerate(bike_data_list):
+            bike_dict = dict(bike_dict)
+            bike_dict[time_stamp_key] = timeStamp  # inserting
 
     if Bike_raw_data_dict['data']:
-        return Bike_raw_data_dict['data']  # a list
+        return bike_data_list  # a list
 
     else:
         # print(bikeData_return.text)
@@ -101,7 +109,7 @@ class TangleScrapper(object):
         """
         MIN_INTERVal = 0.0011
         if step < MIN_INTERVal:
-            warnings.warn(f'interval for step is too low')
+            warnings.warn(f'interval for step is too low')  # preventing over pulling
 
         node_list = []
         Node = [0, 0]
@@ -141,9 +149,12 @@ class TangleScrapper(object):
             plt.show()
         return node_list
 
-    def tree_slice(self, phoneBook_path, usingMethod=1):
+    def tree_slice(self, phoneBook_path, usingMethod=1, return_bike_info: bool = False):
         """
 
+        :param phoneBook_path:
+        :param usingMethod:
+        :param return_bike_info:
         :return:
         """
 
@@ -151,8 +162,9 @@ class TangleScrapper(object):
             """
             dict for de duplicate
             """
+            timeStamp = datetime.datetime.now().timestamp()
             bikeNo_dict = {}  # storing the lng and lat and detected times
-            data_formatting = ['lng', 'lat', 'detectedBikes']
+            # data_formatting = ['lng', 'lat', 'detectedBikes']
             points_list = []
 
             init_points = self.rectangle_slice()
@@ -160,11 +172,12 @@ class TangleScrapper(object):
             root_points = []
             manager = tokenManager.TokenManager(phoneBook_path)
             for init_point in init_points:
-                point_viewed_bikes = getBikes_reformed(init_point, manager.loop_token())
+                point_viewed_bikes = getBikes_reformed(init_point, manager.loop_token(), INSERT_TIMESTAMP=True)
                 bikesCount = len(point_viewed_bikes)
-                if bikesCount > 0:
+
+                if bikesCount > 0:  # for point that is surrounded by multiple bikes
                     a_random_bike = point_viewed_bikes[random.randint(0, bikesCount)]  # random get a bike from the
-                    root_points.append([a_random_bike['lng'], a_random_bike['lat']])
+                    root_points.append([a_random_bike['lng'], a_random_bike['lat']])  # prime layer
 
                     for bike in point_viewed_bikes:  # record the bike detectedCount
 
@@ -173,12 +186,20 @@ class TangleScrapper(object):
                             bike_info[0], bike_info[1] = bike['lng'], bike['lat']
                             bike_info[2] += 1
                         else:
-                            bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], 1]
+                            bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], 1]  # create if it not
                 else:
                     continue
 
-            bikeNo_list = list(bikeNo_dict.keys())
+            bikeNo_list = list(bikeNo_dict.keys())  # list of bikeNo int type
+            for bike_scan_data in bikeNo_list:  # append to bike loc whose detectedCount is less than 2
+                bike_scan_data: list
+                if bike_scan_data[-1] >= 2:
+                    continue
+                else:
 
+                    root_points.append(bike_scan_data[0:1])  # the point loc out
+
+            points_list = init_points.extend(root_points)
             return points_list
 
 
