@@ -13,7 +13,7 @@ class PhoneNumber(object):
     HALL_LAST_SMS_TIME = None
     phoneBooks = []
 
-    def __init__(self, phone_number, token='', cooldown=DEFAULT_COOLDOWN, tokenAutoUpdate: bool = True):
+    def __init__(self, phone_number, token='_', cooldown=DEFAULT_COOLDOWN, tokenAutoUpdate: bool = True):
         """
         :param phone_number:
         :param token:phone_number:
@@ -32,7 +32,7 @@ class PhoneNumber(object):
         self.token_last_time = time.time()
         self.HALL_LAST_SMS_TIME = time.time()  # for SMS blocking
 
-        self.tokenUsable = bool(token == '')  # default input token is always usable
+        self.tokenUsable = bool(token == '_')  # default input token is always usable
 
         self.phoneBooks.append(self.create_phone_number_dict())  # add to new phone_number to the book
 
@@ -44,23 +44,10 @@ class PhoneNumber(object):
         """
         self.token = token
         self.token_last_time = time.time()
-        self.tokenUsable = True
         return
-
-    def token_now_Usable(self):
-        """
-
-        :return:
-        """
-        passedTime = time.time() - self.token_last_time
-        if passedTime > self.tokenCoolDown:
-            return True
-        else:
-            return False
 
     def syc_token_last_time(self):
         self.token_last_time = time.time()
-        pass
 
     def syc_HALL_LAST_SMS_TIME(self):
         self.HALL_LAST_SMS_TIME = time.time()
@@ -71,13 +58,16 @@ class PhoneNumber(object):
         update token and return token
         :return: token or ''
         """
-        if self.token_now_Usable():
+        passedTime = time.time() - self.token_last_time
 
-            print(f'{self.phone_number}: TOKEN available|| Passed time  > {self.tokenCoolDown}')
+        if passedTime > self.tokenCoolDown:
+
+            print(f'{self.phone_number}: TOKEN available|| Passed time: {passedTime:.3f}s > {self.tokenCoolDown}')
             self.syc_token_last_time()  # syc and return token
             return self.token
         else:
             print(f'{self.phone_number}: token not available')
+
             return ''
 
     def get_phone_number(self, syc_sms=False):
@@ -138,7 +128,6 @@ class PhoneNumber(object):
         data_dict = {
             'phoneNumber': self.phone_number.copy(),
             'token': self.token,
-            'tokenUSable': self.tokenUsable,
             'token_last_time': self.token_last_time,
             'tokenCooldown': self.tokenCoolDown
         }
@@ -150,19 +139,11 @@ class PhoneBook(object):
     use a book file
     """
 
-    def __init__(self, book_path):
-
-        self.content: list
-        if os.path.exists(book_path):
-            self.book_path = book_path
-            self.loadBook()  # loadBook form database
-        else:
-            print(f'{book_path} not Found')
-            print('create book file')
-
-            raise Exception
-
-        print(f'phoneBook Length {len(self.content)} ')
+    def __init__(self, book_text_path):
+        if os.path.exists(book_text_path):
+            self.phoneBook: list = json.loads(book_text_path)
+        self.phoneBook.length = len(self.phoneBook)  # store length
+        print(f'phoneBook Length{self.phoneBook.length} ')
 
     def loop_token(self):
         """
@@ -171,17 +152,8 @@ class PhoneBook(object):
         """
 
         while True:
-            for phoneNum in enumerate(self.content):
-                if phoneNum.
+            for phone_dict in enumerate(self.phoneBook):
+                phone_dict.
             pass
 
-    def loadBook(self):
-        self.content: list = json.loads(self.book_path)
 
-        pass
-
-    def dumpBook(self, init_dump=False):
-        if init_dump:
-
-        self.content: list = json.loads(self.book_path)
-        pass

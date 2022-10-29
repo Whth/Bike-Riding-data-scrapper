@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt  # plt 用于显示图片
 
 import BadDataCleaner
 from CoodiSys import TangleScrapper, BOUND_LOCATION
-from folderHelper import open_CurTime_folder, bikeData_log_file_name
+from folderHelper import open_CurTime_folder
 from phoneBook import PhoneBook
 
 # <editor-fold desc="Data Capture Section">
@@ -68,8 +68,8 @@ def getAllBike(phoneBook_path, loc_list: list = BOUND_LOCATION,
     raise Exception  # raise Exception if no match found
 
 
-def log_scanData():
-    log_dir = open_CurTime_folder() + bikeData_log_file_name
+def log():
+    log_dir = open_CurTime_folder(rootFolder=ROOT_FOLDER) + log_file_name
     log_content = {
         'totalDetectedBikes_within': bike_count_detail[0],
         'duplicatedBikes': bike_count_detail[1],
@@ -77,7 +77,7 @@ def log_scanData():
         'timestamp': timestamp
     }
 
-    if not os.path.exists(log_dir):  # check if the log_scanData file exists
+    if not os.path.exists(log_dir):  # check if the log file exists
         with open(log_dir, mode='w'):
             pass
     with open(log_dir, mode='a') as log:
@@ -115,7 +115,7 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
                                   loc_list=loc_list,
                                   USE_NEW_VERSION=USE_NEW_VERSION)  # return list of all bikes with dict format
 
-            # <editor-fold desc="BIKES counter log_scanData">
+            # <editor-fold desc="BIKES counter log">
             if WriteDownLog:  # params to control the logging
 
 
@@ -141,21 +141,19 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
 
 # </editor-fold>
 
-class BikeDataShaders:
+class Shaders:
 
-    def __init__(self, bike_list):
-        self.content: list = bike_list
-
+    def __init__(self):
         pass
 
-    def display_bikes_on_map(self, area: list, mapTitle: str = None, saveImage: bool = False) -> None:
+    def display_bikes_on_map(bikes_list: list, area: list, mapTitle: str = None, saveImage: bool = False) -> None:
 
         """
         display_bikes_on_map
         :param saveImage:
         :param mapTitle:
         :param area:
-        :param self: dict*n
+        :param bikes_list: dict*n
 
         :return:
 
