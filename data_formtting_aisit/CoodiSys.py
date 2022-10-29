@@ -21,6 +21,21 @@ A_AREA = [120.700832, 27.925936, 120.703653, 27.927596]
 B_AREA = [120.70381, 27.929415, 120.708912, 27.932558]
 
 
+def check_point_in_tangle(point: list, tangle: list) -> bool:
+    """
+
+    :param point:
+    :param tangle:
+    :return:
+    """
+    inRange = False
+    if tangle[0] < point[0] < tangle[2]:  # x lock
+        if tangle[1] < point[1] < tangle[3]:  # y lock
+            inRange = True
+
+    return inRange
+
+
 def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False,
                       INSERT_TIMESTAMP: bool = False, ) -> list:
     """
@@ -162,7 +177,7 @@ class TangleScrapper(object):
             """
             dict for de duplicate
             """
-            timeStamp = datetime.datetime.now().timestamp()
+            timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
             bikeNo_dict = {}  # storing the lng and lat and detected times
             # data_formatting = ['lng', 'lat', 'detectedBikes']
             points_list = []
@@ -184,9 +199,10 @@ class TangleScrapper(object):
                         if bikeNo_dict.get(bike['bikeNo']):
                             bike_info = bikeNo_dict[bike['bikeNo']]
                             bike_info[0], bike_info[1] = bike['lng'], bike['lat']
-                            bike_info[2] += 1
+                            # timeStamp don't move
+                            bike_info[3] += 1
                         else:
-                            bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], 1]  # create if it not
+                            bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], timeStamp, 1]  # create if it not
                 else:
                     continue
 
@@ -200,6 +216,8 @@ class TangleScrapper(object):
                     root_points.append(bike_scan_data[0:1])  # the point loc out
 
             points_list = init_points.extend(root_points)
+            if return_bike_info:
+                return points_list, bikeNo_dict
             return points_list
 
 

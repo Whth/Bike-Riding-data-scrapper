@@ -77,7 +77,8 @@ class PhoneNumber(object):
             self.syc_HALL_LAST_SMS_TIME()
         return self.phone_number
 
-    def send_SMS(self) -> bool:
+    def send_SMS(self, FREQ_CHECK=False) -> bool:
+        print(f'FREQ_CHECK:{FREQ_CHECK}')
         """
 
         :return: success code 10
@@ -87,6 +88,13 @@ class PhoneNumber(object):
                     "action": "user.account.sendCodeV2", "mobile": self.phone_number, "capText": ""}
         head = req_misc.a_random_header()
         echo = requests.post(apiAdd, headers=head, data=json.dumps(req_load), timeout=6)
+
+        if FREQ_CHECK:
+            SMS_CD = 65
+            while time.time() - self.HALL_LAST_SMS_TIME < SMS_CD:
+                time.sleep(1)
+                print(f'Waiting HALL_LAST_SMS_TIME remaining {SMS_CD - time.time() + self.HALL_LAST_SMS_TIME:%.f}',
+                      end='\r')
 
         if 'ok' in echo:
             print('Message Sent')

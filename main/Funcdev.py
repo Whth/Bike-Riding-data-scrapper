@@ -1,21 +1,15 @@
-import base64
-import copy
 import datetime
-import json
+import datetime
 import os
 import time
 
-import matplotlib.image as mpimg  # mpimg 用于读取图片
 import matplotlib.pyplot as plt  # plt 用于显示图片
-import requests
 
 import BadDataCleaner
 import CoodiSys
 from CoodiSys import BOUND_LOCATION, rectangle_slice
-from folderHelper import cheek_local_phone_format, sync_phone_txt
-from net_control.req_misc import input_with_timeout
-from req_misc import a_random_header
-from tokenManager import loop_find_available_token, update_token_status, update_phone_status
+from folderHelper import open_CurTime_tree_folder
+from tokenManager import loop_find_available_token, update_token_status
 
 # <editor-fold desc="Data Capture Section">
 
@@ -25,179 +19,12 @@ available_code,phoneNumber,last_phone_used_time,expired_code,LoginToken,last_Log
 """
 
 
-# <editor-fold desc="HAL">
-
-
-# <editor-fold desc="net_work_components">
-
-
-def sendSMSCode_ttBike(phone):
-    """
-    功能：输入手机号，模拟完成获取哈喽单车短信验证码的操作。
-    1.传入手机号phone
-    2.如果顺利，请求响应会包含base64图片验证码，否则显示异常信息
-    3.显示图片验证码，弹框要求输入。如果输入的验证码正确，服务器会返回发送短信成功地响应，否则显示异常信息
-    """
-    secs = requests.session()
-
-    get_code_url = 'https://api.ttbike.com.cn/auth?user.account.sendCodeV2'
-    get_code_data = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 6,
-                     "action": "user.account.sendCodeV2", "mobile": phone, "capText": ""}
-    r = secs.post(get_code_url, headers=a_random_header(), data=json.dumps(get_code_data), timeout=6)  # post手机号
-    status = False
-    if "imageCaptcha" in r.text:  # 获取短信验证码前需要验证图片验证码，如果response包含验证码字段，则正确，否则异常
-        img = json.loads(r.text)["data"]["imageCaptcha"]
-        with open("captcha.png", 'wb') as tempOut:
-            tempOut.write(base64.decodebytes(bytes(img[22:], "utf-8")))  # 将base64图片验证码解码保存
-        captcha = mpimg.imread('captcha.png')  # 使用mpimg读取验证码
-        plt.imshow(captcha)  # 在Ipython或JupyterNoetebook显示图片，便于人工输入
-        plt.axis('off')
-        plt.show()
-        code = input('请输入图片验证码:')
-        get_code_data["capText"] = code
-        r = secs.post(get_code_url, headers=a_random_header(), data=json.dumps(get_code_data), timeout=6)
-        if 'true' in r.text:
-            print(r.text)
-            print('短信验证码发送成功！')
-            status = True
-        else:
-            print('图片验证码错误！')
-    else:
-        print(r.text)
-    return status
-
-
-
-
-def getBikes_improved(point_coordinates: list, token: str, USE_NEW_VERSION=False) -> list:
-    """
-    功能：获取某一经纬度周边500(?)米的所有单车信息
-    1.传入经纬度和token值
-    2.如果顺利，返回经纬度周围500米的所有单车信息，否则显示异常信息
-    """
-
-    get_bike_data = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 1,
-                     "action": "user.ride.nearBikes",
-                     "lng": point_coordinates[0], "lat": point_coordinates[1],
-                     "currentLng": point_coordinates[0], "currentLat": point_coordinates[1],
-                     "cityCode": "0577", "adCode": "330304", "token": token
-                     }
-
-    get_bike_data_new = {
-        "version": "6.17.0", "from": "h5", "systemCode": 63, "platform": 1,
-        "action": "user.ride.nearBikes",
-        "lng": point_coordinates[0], "lat": point_coordinates[1],
-        "currentLng": point_coordinates[0], "currentLat": point_coordinates[1],
-        "adCode": "330304", "cityCode": "0577", "token": token,
-        "ticket": "MTY3MjQxMjQ3Mg==.su9UiPSWh6VGUPHMqk8tpmD3wpgVr8eB464cPOT/J9o="
-    }
-    if USE_NEW_VERSION:
-        get_bike_data = get_bike_data_new
-
-    get_bike_url = 'https://api.ttbike.com.cn/api?user.ride.nearBikes'
-    bikeData_return = requests.post(get_bike_url, headers=a_random_header(), data=json.dumps(get_bike_data), timeout=20)
-    print(f'Server Echoing status:{bikeData_return}')
-    Bike_raw_data_dict = json.loads(bikeData_return.text)  # return type is dict
-
-    """
-
-    passCode = 0
-    expiredCode = 133
-    """
-
-    if Bike_raw_data_dict['data']:
-        return Bike_raw_data_dict['data']  # a list
-
-    else:
-        # print(bikeData_return.text)
-        print(f'## BAD TOKEN ## : {token}')
-        return [token]
-
-
-# </editor-fold>
-
-
-def get_SMS_Code_Manually() -> int:
-    """
-    Get the SMS code
-    """
-    print('needing human configuration')
-    SMScode = int(input_with_timeout('Please input the SMScode: '))
-    if SMScode is None:
-        print('no response,skip input')
-        return 0000
-    return SMScode
-
-
-def load_local_phone_dict_list():
-    """
-    load local phone dict list
-    :return:
-    """
-    local_phone_dict_list = []
-
-    with open(f'{phoneNumber_file_name}', 'r') as f:
-
-        for i in range(get_all_lines_count()):
-            line = f.readline()
-
-            if line == '\n' and line == '':
-                print(f'skip blank lines')
-                continue
-            print(f'loading line :{line}')
-            tempDict = copy.deepcopy(normal_format_dict)
-            line_list = line.split()  # converting strings to list
-            for order_place in range(len(normal_format_order)):  # converting list to dict
-                order_place_type = type(tempDict[normal_format_order[order_place]])
-                tempDict[normal_format_order[order_place]] = order_place_type(line_list[order_place])
-            local_phone_dict_list.append(tempDict)
-        print('All lines were converted successfully\n###################################\n\n\n')
-    return local_phone_dict_list
-
-
-def write_local_phone_dict_list_to_file(dict_list: list, address=f'{phoneNumber_file_name}'):
-    """
-    write local phone dict list to file
-    :param dict_list:
-    :param address:
-    :return:
-    """
-    # print(f'writing {dict_list}\n to file {address}\n##############################')
-    show_dict_list(dict_list)
-    with open(address, 'w') as f:
-        for phone_data_dict in dict_list:
-            spaceC = ''
-            for order_place in normal_format_order:
-                f.write(spaceC + str(phone_data_dict[order_place]))
-                if spaceC == '':
-                    spaceC = ' '
-            f.write('\n')
-    print('All Written!')
-
-
-# </editor-fold>
-
 
 # <editor-fold desc="Function Updates">
 
 
-def check_point_in_tangle(point: list, tangle: list) -> bool:
-    """
-
-    :param point:
-    :param tangle:
-    :return:
-    """
-    inRange = False
-    if tangle[0] < point[0] < tangle[2]:  # x lock
-        if tangle[1] < point[1] < tangle[3]:  # y lock
-            inRange = True
-
-    return inRange
 
 
-def bikeDict_to_location(bikeDict: dict):
-    return [float(bikeDict.get('lng')), float(bikeDict.get('lat'))]
 
 
 def filter_point_in_tangle(bikeList: list, tangle: list) -> list:
@@ -434,21 +261,9 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
 
 # </editor-fold>
 
-def radar_single_scan(target_location_list: list, token_dict_list: list, ) -> None:
-    """
-    for given
-    :return:
-    """
 
 
-def radar_scan() -> None:
-    """
 
-    :return:
-    """
-
-
-# <editor-fold desc="TEST section">
 
 
 
@@ -512,55 +327,6 @@ def display_bikes_on_map(bikes_list: list, area: list, mapTitle: str = None, sav
 
     plt.show()
     return
-
-
-# </editor-fold>
-
-
-def update_signal_data_dict(a_data_dict: dict, withTokenTest=True):
-    phoneNumber = a_data_dict[normal_format_order[0]]
-    print(f'\tUpdating phone {phoneNumber} data')
-    sendSMSCode_ttBike(phoneNumber)  # matching SMScode with phoneNumber
-    print('\tSending SMS Msg')
-    update_phone_status(a_data_dict, available_code=0)
-    print('\tUpdating phone status')
-    SMScode_input = get_SMS_Code_Manually()
-    print(f'the input code is {SMScode_input}\n'
-          f'###################################')
-
-    if SMScode_input != 0:
-        print('\tGetting token form the server')
-        token = getToken_ttBike(phoneNumber, SMScode_input)
-
-        print('\tUpdating token status')
-        update_token_status(a_data_dict, token)
-        a_data_dict[normal_format_order[3]] = token
-        return a_data_dict
-    else:
-        print(f'bad input code: {SMScode_input}')
-        raise
-
-
-def massive_Update_phone_data_dict_list(dict_list: list, safeUpdate=True) -> list:
-    """
-
-    :param dict_list:
-    :param safeUpdate:
-    :return:
-    """
-    """Update phone data dict list"""
-    if safeUpdate and cheek_local_phone_format() > 0:  # check format preventing read error
-        print('Sync local cache')
-        sync_phone_txt()
-
-    for a_data_dict in dict_list.copy():
-        update_signal_data_dict(a_data_dict)
-
-    print('###########\n'
-          'ALL Updated\n'
-          '###########')
-    show_dict_list(dict_list)
-    return dict_list
 
 
 # </editor-fold>
