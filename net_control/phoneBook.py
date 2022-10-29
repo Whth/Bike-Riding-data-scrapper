@@ -6,8 +6,6 @@ import warnings
 import requests
 
 import req_misc
-from Funcdev import massive_Update_phone_data_dict_list
-from folderHelper import get_lines_with_content_Count
 
 
 class PhoneNumber(object):
@@ -15,7 +13,7 @@ class PhoneNumber(object):
     HALL_LAST_SMS_TIME = None
     phoneBooks = []
 
-    def __init__(self, phone_number, token='_', cooldown=DEFAULT_COOLDOWN, tokenAutoUpdate: bool = True):
+    def __init__(self, phone_number, token='', cooldown=DEFAULT_COOLDOWN, tokenAutoUpdate: bool = True):
         """
         :param phone_number:
         :param token:phone_number:
@@ -34,7 +32,7 @@ class PhoneNumber(object):
         self.token_last_time = time.time()
         self.HALL_LAST_SMS_TIME = time.time()  # for SMS blocking
 
-        self.tokenUsable = bool(token == '_')  # default input token is always usable
+        self.tokenUsable = bool(token == '')  # default input token is always usable
 
         self.phoneBooks.append(self.create_phone_number_dict())  # add to new phone_number to the book
 
@@ -46,10 +44,23 @@ class PhoneNumber(object):
         """
         self.token = token
         self.token_last_time = time.time()
+        self.tokenUsable = True
         return
+
+    def token_now_Usable(self):
+        """
+
+        :return:
+        """
+        passedTime = time.time() - self.token_last_time
+        if passedTime > self.tokenCoolDown:
+            return True
+        else:
+            return False
 
     def syc_token_last_time(self):
         self.token_last_time = time.time()
+        pass
 
     def syc_HALL_LAST_SMS_TIME(self):
         self.HALL_LAST_SMS_TIME = time.time()
@@ -60,16 +71,13 @@ class PhoneNumber(object):
         update token and return token
         :return: token or ''
         """
-        passedTime = time.time() - self.token_last_time
+        if self.token_now_Usable():
 
-        if passedTime > self.tokenCoolDown:
-
-            print(f'{self.phone_number}: TOKEN available|| Passed time: {passedTime:.3f}s > {self.tokenCoolDown}')
+            print(f'{self.phone_number}: TOKEN available|| Passed time  > {self.tokenCoolDown}')
             self.syc_token_last_time()  # syc and return token
             return self.token
         else:
             print(f'{self.phone_number}: token not available')
-
             return ''
 
     def get_phone_number(self, syc_sms=False):
@@ -130,22 +138,31 @@ class PhoneNumber(object):
         data_dict = {
             'phoneNumber': self.phone_number.copy(),
             'token': self.token,
+            'tokenUSable': self.tokenUsable,
             'token_last_time': self.token_last_time,
             'tokenCooldown': self.tokenCoolDown
         }
         return data_dict
 
 
-class TokenManager(object):
+class PhoneBook(object):
     """
     use a book file
     """
 
-    def __init__(self, text_path):
-        if os.path.exists(text_path):
-            self.phoneBook: list = json.loads(text_path)
-        self.phoneBook.length = len(self.phoneBook)  # store length
-        print(f'phoneBook Length{self.phoneBook.length} ')
+    def __init__(self, book_path):
+
+        self.content: list
+        if os.path.exists(book_path):
+            self.book_path = book_path
+            self.loadBook()  # loadBook form database
+        else:
+            print(f'{book_path} not Found')
+            print('create book file')
+
+            raise Exception
+
+        print(f'phoneBook Length {len(self.content)} ')
 
     def loop_token(self):
         """
@@ -154,38 +171,17 @@ class TokenManager(object):
         """
 
         while True:
-            for phone_dict in enumerate(self.phoneBook):
-                phone_dict.
+            for phoneNum in enumerate(self.content):
+                if phoneNum.
             pass
 
+    def loadBook(self):
+        self.content: list = json.loads(self.book_path)
 
-def loop_find_available_token(dict_list: list, failCounterON=False) -> dict:
-    """
-    operate on original data and return the token s dict
-    :param dict_list:
-    :param failCounterON:
-    :return: token s dict with origin data use info
-    """
-    fail_count = 0
-    while True:
-        for dict_serial in range(len(dict_list)):
+        pass
 
-            if check_token_coolDown(dict_list[dict_serial]):
-                token = dict_list[dict_serial][normal_format_order[3]]
-                print(f'Found an available token : {token}')
-                update_token_status(dict_list[dict_serial], token, expired_code=0)
-                # write_local_phone_dict_list_to_file(dict_list)
-                return dict_list[dict_serial]
-            else:
-                fail_count += 1
-                print(f'##fail to find a token for {fail_count} times##', end='\r')
-                time.sleep(0.01)
+    def dumpBook(self, init_dump=False):
+        if init_dump:
 
-        if failCounterON and fail_count >= 5 * get_lines_with_content_Count():
-            print(f'fail_count exceeds limitation'
-                  f'\n############################'
-                  f'\n############################')
-            massive_Update_phone_data_dict_list(dict_list)
-            break
-
-        # normal_sleep(DEFAULT_COOLDOWN / 3)
+        self.content: list = json.loads(self.book_path)
+        pass

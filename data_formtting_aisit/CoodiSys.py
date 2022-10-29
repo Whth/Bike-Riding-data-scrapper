@@ -9,7 +9,7 @@ import requests
 from matplotlib import pyplot as plt
 
 import req_misc
-import tokenManager
+from phoneBook import PhoneBook
 
 SOUTHERN_SCH = [120.697855, 27.919326, 120.707664, 27.926667]
 BOUND_LOCATION = [120.691208, 27.913032, 120.709791, 27.931309]
@@ -99,16 +99,16 @@ class FakeDataConstructor(object):
 
 class TangleScrapper(object):
 
-    def __init__(self, loc_list: list = BOUND_LOCATION):
+    def __init__(self, loc_list: list = BOUND_LOCATION, stepLen: float = 0.0011):
         """
         default constructor op on the whole school area
         :param loc_list:
         """
         self.loc_list = loc_list,
-
+        self.stepLen = stepLen
         pass
 
-    def rectangle_slice(self, step=0.0011,
+    def rectangle_slice(self,
                         disPlayPic: bool = False) -> list:
         """
         attention: This function will not function properly when called with a line_liked tangle,demanding img improvements
@@ -123,14 +123,14 @@ class TangleScrapper(object):
         |_______lng
         """
         MIN_INTERVal = 0.0011
-        if step < MIN_INTERVal:
+        if self.stepLen < MIN_INTERVal:
             warnings.warn(f'interval for step is too low')  # preventing over pulling
 
         node_list = []
         Node = [0, 0]
 
-        latRange = np.arange(self.loc_list[1], self.loc_list[3], step)
-        lngRange = np.arange(self.loc_list[0], self.loc_list[2], step)
+        latRange = np.arange(self.loc_list[1], self.loc_list[3], self.stepLen)
+        lngRange = np.arange(self.loc_list[0], self.loc_list[2], self.stepLen)
 
         total_nodes_counter = len(lngRange) * len(latRange)
         print(f'the monitoring area contains {total_nodes_counter}')
@@ -164,9 +164,10 @@ class TangleScrapper(object):
             plt.show()
         return node_list
 
-    def tree_slice(self, phoneBook_path, usingMethod=1, return_bike_info: bool = False):
+    def tree_slice(self, a_phoneBook, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False):
         """
-
+        in book out bike_info and points Scand
+        :param a_phoneBook:
         :param phoneBook_path:
         :param usingMethod:
         :param return_bike_info:
@@ -177,6 +178,13 @@ class TangleScrapper(object):
             """
             dict for de duplicate
             """
+
+            if a_phoneBook and not phoneBook_path:
+                Book = a_phoneBook
+            elif not a_phoneBook and not phoneBook_path:
+                raise Exception
+
+            Book = PhoneBook(phoneBook_path)
             timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
             bikeNo_dict = {}  # storing the lng and lat and detected times
             # data_formatting = ['lng', 'lat', 'detectedBikes']
@@ -185,9 +193,9 @@ class TangleScrapper(object):
             init_points = self.rectangle_slice()
 
             root_points = []
-            manager = tokenManager.TokenManager(phoneBook_path)
+
             for init_point in init_points:
-                point_viewed_bikes = getBikes_reformed(init_point, manager.loop_token(), INSERT_TIMESTAMP=True)
+                point_viewed_bikes = getBikes_reformed(init_point, Book.loop_token(), INSERT_TIMESTAMP=True)
                 bikesCount = len(point_viewed_bikes)
 
                 if bikesCount > 0:  # for point that is surrounded by multiple bikes

@@ -147,7 +147,7 @@ def tree_folder_to_list(root: str = '.', filter_ON=False) -> list:
           f'--------------------------------')
     for f in resultList:
         a = os.path.splitext(f)
-        if a == '.log':
+        if a == '.log_scanData':
             del f
     return resultList
 

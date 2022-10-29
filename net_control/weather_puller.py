@@ -37,3 +37,8 @@ class WeatherCop_:
         humidity = data["humidity"]  # 湿度
         print(
             city + "今日天气" + wea + "," + "温度" + tem + "," + "最高温度" + tem1 + "最低温度" + tem2 + "降水概率" + humidity)
+
+
+if __name__ == '__main__':
+    we = WeatherCop_()
+    we.weather()
