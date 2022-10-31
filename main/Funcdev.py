@@ -1,12 +1,8 @@
 import datetime
-import os
-import time
-
-import matplotlib.pyplot as plt  # plt 用于显示图片
+import warnings
 
 import BadDataCleaner
 from CoodiSys import TangleScrapper, BOUND_LOCATION
-from folderHelper import open_CurTime_folder
 from phoneBook import PhoneBook
 
 # <editor-fold desc="Data Capture Section">
@@ -52,7 +48,7 @@ def getAllBike(phoneBook_path, loc_list: list = BOUND_LOCATION,
     """
     no judge if the data obtained is in range
     :param phoneBook_path:
-    :param USE_TREE:
+    :param USE_TREE:will return count
     :param USE_NEW_VERSION:
     :param stepLen:
     :param loc_list:
@@ -68,72 +64,38 @@ def getAllBike(phoneBook_path, loc_list: list = BOUND_LOCATION,
     raise Exception  # raise Exception if no match found
 
 
-def log():
-    log_dir = open_CurTime_folder(rootFolder=ROOT_FOLDER) + log_file_name
-    log_content = {
-        'totalDetectedBikes_within': bike_count_detail[0],
-        'duplicatedBikes': bike_count_detail[1],
-        'totalDetectedBikes': bike_count_detail[0] + bike_count_detail[1],
-        'timestamp': timestamp
-    }
-
-    if not os.path.exists(log_dir):  # check if the log file exists
-        with open(log_dir, mode='w'):
-            pass
-    with open(log_dir, mode='a') as log:
-        for content_ele in log_content.keys():
-            log.write(f'{log_content[content_ele]}\t')
-        log.write('\n')
 # <editor-fold desc="MAIN method">
+
+
 def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInterval: float = 180.,
-                             lastingDays: float = 1.,
                              loc_list: list = BOUND_LOCATION, notifications: bool = False, filter_ON: bool = False,
                              USE_NEW_VERSION: bool = False, WriteDownLog: bool = False, dispPlayData: bool = False):
-    if scanStep < 0.001:
+    if scanStep < 0.0011:
         raise Exception
+    if scanInterval < 60:
+        warnings.warn('frequency scan interval exceeded')
+        scanInterval = 60
     """
     功能：每隔两分钟获取一次高教园的所有单车信息并保存。
 
     """
-
-    if scanInterval == 0:
-        raise
-    max_interval = 2 * scanInterval
-    min_interval = scanInterval / 2
-
-    endDay = datetime.datetime.now() + datetime.timedelta(days=lastingDays)
+    MODE = 1
     while True:
         try:
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            print('########################################################\n'
-                  '##########################START#########################\n'
-                  '########################################################')
+            round_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")  # for each init time scan
+            print(f'initialized {round_timestamp}')
             nextTime = (datetime.datetime.now() + datetime.timedelta(minutes=3))
-            print(timestamp)
+            if MODE == 1:
+                Points, bikes = getAllBike(dict_list, stepLen=scanStep,
+                                           loc_list=loc_list,
+                                           USE_NEW_VERSION=USE_NEW_VERSION
+                                           , USE_TREE=True)  # return list of all bikes with dict format
+                shader = BikeDataShaders(bike_list=bikes)
+                shader
 
-            allBikes = getAllBike(dict_list, stepLen=scanStep,
-                                  loc_list=loc_list,
-                                  USE_NEW_VERSION=USE_NEW_VERSION)  # return list of all bikes with dict format
 
-            # <editor-fold desc="BIKES counter log">
-            if WriteDownLog:  # params to control the logging
-
-
-            # </editor-fold>
-
-            restTime = (nextTime - datetime.datetime.now()).seconds
-            if min_interval < restTime < max_interval:  # sleep time is always smaller than 1800 seconds
-                pass
-            else:
-                restTime = (min_interval + max_interval) / 2
-            print(f'Next scanTime is: ' + nextTime.strftime("%Y-%m-%d %H:%M") + f'## Resting {restTime}s')
-            time.sleep(restTime)
-
-            if datetime.datetime.now() > endDay:
-                print('time up')
-                break
         except KeyboardInterrupt:
-            # write_local_phone_dict_list_to_file(dict_list)
+
             print('Program EXITED')
 
             break
@@ -141,27 +103,39 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
 
 # </editor-fold>
 
-class Shaders:
+class BikeDataShaders:
 
-    def __init__(self):
+    def __init__(self, bike_list):
+        self.content: list = bike_list
+
         pass
 
-    def display_bikes_on_map(bikes_list: list, area: list, mapTitle: str = None, saveImage: bool = False) -> None:
+    def hotMap(self):
+        pass
 
-        """
-        display_bikes_on_map
-        :param saveImage:
-        :param mapTitle:
-        :param area:
-        :param bikes_list: dict*n
+    def bikesInRange(self, bikes, loc_list):
+        inRange = 0
 
-        :return:
+        pass
 
-            lat
-        |
-        |
-        |_______lng
-        """
+
+"""
+    def display_bikes_on_map(self, area: list, mapTitle: str = None, saveImage: bool = False) -> None:
+
+        
+        # display_bikes_on_map
+        # :param saveImage:
+        # :param mapTitle:
+        # :param area:
+        # :param self: dict*n
+        # 
+        # :return:
+        # 
+        #     lat
+        # |
+        # |
+        # |_______lng
+        
     completeCount = 0
     bikes_list_len = len(bikes_list)
     data_display_multiplier = 1.0
@@ -209,13 +183,11 @@ class Shaders:
     plt.show()
     return
 
+"""
 
 # </editor-fold>
 
 
 if __name__ == "__main__":
-
-
-
     # </editor-fold>
     BadDataCleaner.normal_data_clean()  # bad data cleanup
