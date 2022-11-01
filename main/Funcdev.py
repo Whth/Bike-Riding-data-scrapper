@@ -117,9 +117,10 @@ class BikeDataShaders:
 
         pass
 
-    def bikesInRange(self, bikes, loc_list):
+    def bikesInRange(self, loc_list):
         inRange = 0
-
+        for bike in self.content:
+            if
         pass
 
 
