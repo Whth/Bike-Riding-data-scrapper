@@ -9,7 +9,7 @@ import requests
 from matplotlib import pyplot as plt
 
 import req_misc
-from phoneBook import PhoneBook
+from phoneBookManager import PhoneBook_Manager
 
 SOUTHERN_SCH = [120.697855, 27.919326, 120.707664, 27.926667]
 BOUND_LOCATION = [120.691208, 27.913032, 120.709791, 27.931309]
@@ -184,7 +184,7 @@ class TangleScrapper(object):
             elif not a_phoneBook and not phoneBook_path:
                 raise Exception
 
-            Book = PhoneBook(phoneBook_path)
+            Book = PhoneBook_Manager(phoneBook_path)
             timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
             bikeNo_dict = {}  # storing the lng and lat and detected times
             # data_formatting = ['lng', 'lat', 'detectedBikes']

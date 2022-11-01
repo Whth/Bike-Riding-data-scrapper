@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import time
@@ -13,7 +14,8 @@ class PhoneNumber(object):
     HALL_LAST_SMS_TIME = None
     phoneBooks = []
 
-    def __init__(self, phone_number, token='', cooldown=DEFAULT_COOLDOWN, tokenAutoUpdate: bool = True):
+    def __init__(self, phone_number: str = '', token: str = '', cooldown: float = DEFAULT_COOLDOWN,
+                 tokenAutoUpdate: bool = True):
         """
         :param phone_number:
         :param token:phone_number:
@@ -47,6 +49,19 @@ class PhoneNumber(object):
         self.tokenUsable = True
         return
 
+    def update(self, phone_number: str = '', token: str = '', cooldown: float = DEFAULT_COOLDOWN):
+        """
+
+        :param phone_number:
+        :param token:
+        :param cooldown:
+        :return:
+        """
+        self.phone_number = phone_number
+        self.update_token(token=token)
+        self.tokenCoolDown = cooldown
+        return
+
     def syc_token_last_time(self):
         self.token_last_time = time.time()
         pass
@@ -64,9 +79,11 @@ class PhoneNumber(object):
 
             print(f'{self.phone_number}: TOKEN available|| Passed time  > {self.tokenCoolDown}')
             self.syc_token_last_time()  # syc and return token
+            self.tokenUsable = True
             return self.token
         else:
             print(f'{self.phone_number}: token not available')
+            self.tokenUsable = False
             return ''
 
     def get_phone_number(self, syc_sms=False):
@@ -125,7 +142,7 @@ class PhoneNumber(object):
 
     def create_phone_number_dict(self):
         data_dict = {
-            'phoneNumber': self.phone_number.copy(),
+            'phoneNumber': self.phone_number,
             'token': self.token,
             'tokenUSable': self.tokenUsable,
             'token_last_time': self.token_last_time,
@@ -134,7 +151,7 @@ class PhoneNumber(object):
         return data_dict
 
 
-class PhoneBook(object, PhoneNumber):
+class PhoneBook_Manager(object, PhoneNumber):
     """
     use a book file
     """
@@ -160,20 +177,42 @@ class PhoneBook(object, PhoneNumber):
         """
 
         while True:
-            for phoneNum in enumerate(self.content):
-
-                if phoneNum. ==:
-                    return phoneNum.
-            pass
+            for phoneNum in self.content:
+                token = phoneNum.get_token()
+                if token:
+                    return token
 
     def loadBook(self):
-        self.content: list = json.load(self.book_path)
-        for phoneNum in enumerate(self.content):
-            PhoneNumber
-        pass
+        """
+        self.content: list
+        :return:
+
+            'phoneNumber': self.phone_number,
+            'token': self.token,
+            'tokenUSable': self.tokenUsable,
+            'token_last_time': self.token_last_time,
+            'tokenCooldown': self.tokenCoolDown
+        """
+
+        with open(self.book_path, mode='r') as book:
+            for line in book.readlines():  # for each line create an empty obj
+
+                tempObj = PhoneNumber()  # empty object
+                phone_dict = json.loads(line)
+                tempObj.update(phone_number=phone_dict['phoneNumber'],
+                               token=phone_dict['token'],
+                               cooldown=phone_dict['tokenCooldown'])
+
+                self.content.append(copy.deepcopy(tempObj))
+        return
 
     def dumpBook(self):
-        json.dump(self.content, self.book_path)
-        pass
-
-    def
+        """
+        dump to file ,create in not found
+        :return:
+        """
+        with open(self.book_path, mode='w') as book:
+            for phone in self.content:
+                line = json.dumps(phone.create_phone_number_dict()) + '\n'
+            book.write(line)
+        return

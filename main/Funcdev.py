@@ -3,7 +3,7 @@ import warnings
 
 import BadDataCleaner
 from CoodiSys import TangleScrapper, BOUND_LOCATION
-from phoneBook import PhoneBook
+from phoneBookManager import PhoneBook_Manager
 
 # <editor-fold desc="Data Capture Section">
 
@@ -55,7 +55,7 @@ def getAllBike(phoneBook_path, loc_list: list = BOUND_LOCATION,
     :return:
     """
     slicer = TangleScrapper(loc_list=loc_list, stepLen=stepLen)
-    a_phoneBook = PhoneBook(phoneBook_path)
+    a_phoneBook = PhoneBook_Manager(phoneBook_path)
 
     if USE_TREE:
         result = slicer.tree_slice(a_phoneBook=a_phoneBook, return_bike_info=True)  # detail return
@@ -91,8 +91,7 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
                                            USE_NEW_VERSION=USE_NEW_VERSION
                                            , USE_TREE=True)  # return list of all bikes with dict format
                 shader = BikeDataShaders(bike_list=bikes)
-                shader
-
+                shader.distributeHotMap()
 
         except KeyboardInterrupt:
 
@@ -110,7 +109,12 @@ class BikeDataShaders:
 
         pass
 
-    def hotMap(self):
+    def distributeHotMap(self):
+        """
+
+        :return:
+        """
+
         pass
 
     def bikesInRange(self, bikes, loc_list):
