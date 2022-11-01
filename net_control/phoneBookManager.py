@@ -12,31 +12,25 @@ import req_misc
 class PhoneNumber(object):
     DEFAULT_COOLDOWN = 0.6  # to restrict to max requests per seconds
     HALL_LAST_SMS_TIME = None
-    phoneBooks = []
 
     def __init__(self, phone_number: str = '', token: str = '', cooldown: float = DEFAULT_COOLDOWN,
-                 tokenAutoUpdate: bool = True):
+                 tokenAutoUpdate: bool = False):
         """
         :param phone_number:
         :param token:phone_number:
         """
 
-        self.phone_number = phone_number  #
-
+        self.phone_number = phone_number
         self.tokenCoolDown = cooldown
+        self.token = token
 
-        if token:
-
-            self.token = token
-        elif tokenAutoUpdate:
+        if tokenAutoUpdate:  # if token is None Autoupdate it
             self.token = self.request_newToken(self.send_SMS())
             self.get_token()
         self.token_last_time = time.time()
         self.HALL_LAST_SMS_TIME = time.time()  # for SMS blocking
 
         self.tokenUsable = bool(token == '')  # default input token is always usable
-
-        self.phoneBooks.append(self.create_phone_number_dict())  # add to new phone_number to the book
 
     def update_token(self, token):
         """
@@ -69,20 +63,21 @@ class PhoneNumber(object):
     def syc_HALL_LAST_SMS_TIME(self):
         self.HALL_LAST_SMS_TIME = time.time()
 
-    def get_token(self):
+    def get_token(self, infoON=False):
         """
         withCoolDown
         update token and return token
         :return: token or ''
         """
         if time.time() - self.token_last_time > self.tokenCoolDown:
-
-            print(f'{self.phone_number}: TOKEN available|| Passed time  > {self.tokenCoolDown}')
+            if infoON:
+                print(f'{self.phone_number}: TOKEN available|| Passed time  > [{self.tokenCoolDown}s]')
             self.syc_token_last_time()  # syc and return token
             self.tokenUsable = True
             return self.token
         else:
-            print(f'{self.phone_number}: token not available')
+            if infoON:
+                print(f'{self.phone_number}: token not available', end='\r')
             self.tokenUsable = False
             return ''
 
@@ -150,13 +145,29 @@ class PhoneNumber(object):
         }
         return data_dict
 
+    def update_token_from_net(self):
+        """
 
-class PhoneBook_Manager(object, PhoneNumber):
+        :return:
+        """
+        if self.phone_number and self.send_SMS():
+            if self.request_newToken(code=req_misc.input_with_timeout('please input SMScode: ')):
+                return
+
+        else:
+            raise Exception
+
+
+class PhoneBook_Manager:
     """
     use a book file
     """
 
     def __init__(self, book_path):
+        """
+        initializing read phone file time content
+        :param book_path:
+        """
 
         self.content: list = []
         if os.path.exists(book_path):
@@ -165,7 +176,11 @@ class PhoneBook_Manager(object, PhoneNumber):
         else:
             print(f'{book_path} not Found')
             print('create book file')
+            with open(os.path.abspath(book_path), mode='w+') as book:
 
+                template_line = json.dumps(PhoneNumber().create_phone_number_dict())
+                book.write(template_line)
+            print('created')
             raise Exception
 
         print(f'phoneBook Length {len(self.content)} ')
@@ -177,10 +192,14 @@ class PhoneBook_Manager(object, PhoneNumber):
         """
 
         while True:
+
             for phoneNum in self.content:
                 token = phoneNum.get_token()
                 if token:
                     return token
+            print('searching for token', end='\r')
+
+            time.sleep(0.01)
 
     def loadBook(self):
         """
@@ -193,6 +212,9 @@ class PhoneBook_Manager(object, PhoneNumber):
             'token_last_time': self.token_last_time,
             'tokenCooldown': self.tokenCoolDown
         """
+        if not os.path.exists(self.book_path):
+            print(f'{self.book_path} not exists')
+            raise Exception
 
         with open(self.book_path, mode='r') as book:
             for line in book.readlines():  # for each line create an empty obj

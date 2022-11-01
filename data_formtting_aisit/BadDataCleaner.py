@@ -6,7 +6,7 @@ import os
 import time
 
 
-def fix_bad_allBikes(filename: str) -> bool:
+def fix_bad_allBikes(filename: str, infoON=True) -> bool:
     """
     sep good and bad data put em into different files
     :param filename:
@@ -50,14 +50,15 @@ def fix_bad_allBikes(filename: str) -> bool:
     """
     disPlay sec
     """
-    print('#############################')
-    print(f'the target file length is: {len(raw_lines)}')
-    print('fix operation Done')
-    print(badFileAdd)
-    print(f'using time: {(time.time() - startTime):.4f}s')
-    print(f'Total goodBike_data count: {len(fineData_list)}')
-    print(f'Total badBike_data count: {bad_data_counter}')
-    print('#############################\n')
+    if infoON:
+        print('#############################')
+        print(f'the target file length is: {len(raw_lines)}')
+        print('fix operation Done')
+        print(badFileAdd)
+        print(f'using time: {(time.time() - startTime):.4f}s')
+        print(f'Total goodBike_data count: {len(fineData_list)}')
+        print(f'Total badBike_data count: {bad_data_counter}')
+        print('#############################\n')
     return success_status
 
 
@@ -159,8 +160,10 @@ def tree_folder_to_list(root: str = '.', filter_ON=False) -> list:
 # bad_data_txt = 'L:/pycharm projects/master/main/RecoveredBikeData/2022-10/02/allBikes.txt'
 # fix_bad_allBikes(bad_data_txt)
 def normal_data_clean() -> None:
+    print('\n\nCLEANSE TIME')
     for file in tree_folder_to_list('L:\pycharm projects\master\dataset\RecoveredBikeData', filter_ON=True):
-        fix_bad_allBikes(file.path)
+        fix_bad_allBikes(file.path, infoON=False)
+    print('\n\nCLEANSE DONE')
     return
 
 

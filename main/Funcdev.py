@@ -1,7 +1,9 @@
 import datetime
+import os
 import warnings
 
 import BadDataCleaner
+import folderHelper
 from CoodiSys import TangleScrapper, BOUND_LOCATION
 from phoneBookManager import PhoneBook_Manager
 
@@ -117,12 +119,6 @@ class BikeDataShaders:
 
         pass
 
-    def bikesInRange(self, loc_list):
-        inRange = 0
-        for bike in self.content:
-            if
-        pass
-
 
 """
     def display_bikes_on_map(self, area: list, mapTitle: str = None, saveImage: bool = False) -> None:
@@ -194,5 +190,12 @@ class BikeDataShaders:
 
 
 if __name__ == "__main__":
-    # </editor-fold>
+    a = os.path.abspath(folderHelper.phoneNumber_file_name)
+    print(a)
+    manager = PhoneBook_Manager(book_path=a)
+
+    manager.content[1]: object
+
+    print(manager.loop_token())
+
     BadDataCleaner.normal_data_clean()  # bad data cleanup
