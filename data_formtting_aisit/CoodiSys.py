@@ -163,9 +163,11 @@ class TangleScrapper(object):
             plt.show()
         return node_list
 
-    def tree_slice(self, a_phoneBook=None, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False):
+    def tree_slice(self, a_phoneBook=None, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False,
+                   logON=True):
         """
         in book out bike_info and points Scand
+        :param logON:
         :param a_phoneBook:
         :param phoneBook_path:
         :param usingMethod:
@@ -188,16 +190,19 @@ class TangleScrapper(object):
             bikeNo_dict = {}  # storing the lng and lat and detected times
             # data_formatting = ['lng', 'lat', 'detectedBikes']
             points_list = []
-
-            init_points = self.rectangle_slice()
-
             root_points = []
+            init_points = self.rectangle_slice()
+            if logON:
+                print(f'total init_points{len(init_points)}')
 
-            for init_point in init_points:
+            for serial in range(len(init_points)):
+                init_point = init_points[serial]
+                print(f'now [{serial}/{len(init_points)}]', end='\r')
                 point_viewed_bikes = getBikes_reformed(init_point, Book.loop_token(), INSERT_TIMESTAMP=True)
                 bikesCount = len(point_viewed_bikes)
 
                 if bikesCount > 0:  # for point that is surrounded by multiple bikes
+                    print(point_viewed_bikes)
                     a_random_bike = point_viewed_bikes[random.randint(0, bikesCount)]  # random get a bike from the
                     root_points.append([a_random_bike['lng'], a_random_bike['lat']])  # prime layer
 

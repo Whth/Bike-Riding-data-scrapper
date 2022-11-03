@@ -197,7 +197,7 @@ if __name__ == "__main__":
     manager.content[0]: object
     manager.content[0].update_token_from_net(force_update=False)
 
-    crapper = TangleScrapper()
+    crapper = TangleScrapper(stepLen=0.0026)
     print(crapper.loc_list)
     res = crapper.tree_slice(phoneBook_path=a)
     print(res)
