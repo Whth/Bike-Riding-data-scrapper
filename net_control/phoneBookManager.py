@@ -104,13 +104,13 @@ class PhoneNumber(object):
                 time.sleep(1)
                 print(f'Waiting HALL_LAST_SMS_TIME remaining {SMS_CD - time.time() + self.HALL_LAST_SMS_TIME:%.f}',
                       end='\r')
-
-        if 'ok' in echo:
+        print(echo.text)
+        if 'ok' in echo.text:
             print('Message Sent')
             return True
         else:
             print('Message fail to send')
-            return False
+            return True
 
     def request_newToken(self, code) -> bool:
         """
@@ -145,14 +145,22 @@ class PhoneNumber(object):
         }
         return data_dict
 
-    def update_token_from_net(self):
+    def update_token_from_net(self, force_update=False):
         """
 
         :return:
         """
+        if not force_update and self.token != '':  # open force_update
+            warnings.warn(f'seems token:[{self.token}] is valid ,pass')
+            return True
+
         if self.phone_number and self.send_SMS():
-            if self.request_newToken(code=req_misc.input_with_timeout('please input SMScode: ')):
-                return
+            # code = req_misc.input_with_timeout('please input SMScode: ')
+            code = input('please input SMScode: ')
+            if code == '':
+                return False
+            if self.request_newToken(code=code):
+                return True
 
         else:
             raise Exception

@@ -194,8 +194,12 @@ if __name__ == "__main__":
     print(a)
     manager = PhoneBook_Manager(book_path=a)
 
-    manager.content[1]: object
+    manager.content[0]: object
+    manager.content[0].update_token_from_net(force_update=False)
 
-    print(manager.loop_token())
+    crapper = TangleScrapper()
+    print(crapper.loc_list)
+    res = crapper.tree_slice(phoneBook_path=a)
+    print(res)
 
     BadDataCleaner.normal_data_clean()  # bad data cleanup

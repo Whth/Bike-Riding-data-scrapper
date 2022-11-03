@@ -78,8 +78,7 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
     time_stamp_key = 'timeStamp'
     if INSERT_TIMESTAMP:  # insert timestamp into data
         timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')  # timestamp for this lap
-        for bike_dict in enumerate(bike_data_list):
-            bike_dict = dict(bike_dict)
+        for bike_dict in bike_data_list:
             bike_dict[time_stamp_key] = timeStamp  # inserting
 
     if Bike_raw_data_dict['data']:
@@ -104,12 +103,12 @@ class TangleScrapper(object):
         default constructor op on the whole school area
         :param loc_list:
         """
-        self.loc_list = loc_list,
+        self.loc_list = loc_list
         self.stepLen = stepLen
+
         pass
 
-    def rectangle_slice(self,
-                        disPlayPic: bool = False) -> list:
+    def rectangle_slice(self, disPlayPic: bool = False) -> list:
         """
         attention: This function will not function properly when called with a line_liked tangle,demanding img improvements
         BOUND_LOCATION: defined in the other docs
@@ -164,7 +163,7 @@ class TangleScrapper(object):
             plt.show()
         return node_list
 
-    def tree_slice(self, a_phoneBook, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False):
+    def tree_slice(self, a_phoneBook=None, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False):
         """
         in book out bike_info and points Scand
         :param a_phoneBook:
