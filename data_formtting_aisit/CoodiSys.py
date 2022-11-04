@@ -86,8 +86,8 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
 
     else:
         # print(bikeData_return.text)
-        print(f'## BAD TOKEN ## : {token}')
-        return [token]
+        warnings.warn(f'## EMPTY ECHO ## : {token}')
+        return []
 
 
 class FakeDataConstructor(object):
@@ -178,6 +178,9 @@ class TangleScrapper(object):
         if usingMethod == 1:
             """
             dict for de duplicate
+            
+            this method will detect util every bike has at least 2 detected
+            
             """
 
             if a_phoneBook and not phoneBook_path:
@@ -192,19 +195,25 @@ class TangleScrapper(object):
             points_list = []
             root_points = []
             init_points = self.rectangle_slice()
-            if logON:
-                print(f'total init_points{len(init_points)}')
+
+            emptyPointSerials = []  # to store the point's serial which is empty
 
             for serial in range(len(init_points)):
                 init_point = init_points[serial]
-                print(f'now [{serial}/{len(init_points)}]', end='\r')
-                point_viewed_bikes = getBikes_reformed(init_point, Book.loop_token(), INSERT_TIMESTAMP=True)
+
+                point_viewed_bikes = getBikes_reformed(init_point, Book.loop_token(), INSERT_TIMESTAMP=True)  # requests
                 bikesCount = len(point_viewed_bikes)
+                print(f'now [{serial}/{len(init_points)}] [{bikesCount}] bikes scanned')
 
                 if bikesCount > 0:  # for point that is surrounded by multiple bikes
-                    print(point_viewed_bikes)
-                    a_random_bike = point_viewed_bikes[random.randint(0, bikesCount)]  # random get a bike from the
-                    root_points.append([a_random_bike['lng'], a_random_bike['lat']])  # prime layer
+                    randomBikeSerial = random.randint(0, bikesCount - 1)  # select a random bike
+
+                    a_random_bike = point_viewed_bikes[randomBikeSerial]  # random get a bike from the requests result
+                    location = [float(a_random_bike['lng']), float(a_random_bike['lat'])]
+                    if logON:
+                        print(f'chose [{randomBikeSerial}] {location}')
+
+                    root_points.append(location)  # primitive layer
 
                     for bike in point_viewed_bikes:  # record the bike detectedCount
 
@@ -216,21 +225,31 @@ class TangleScrapper(object):
                         else:
                             bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], timeStamp, 1]  # create if it not
                 else:
+                    # delete the empty point
+                    emptyPointSerials.append(serial)
                     continue
 
+            for emptyPointSerial in emptyPointSerials:  # delete the empty point
+                del init_points[emptyPointSerial]
+
             bikeNo_list = list(bikeNo_dict.keys())  # list of bikeNo int type
-            for bike_scan_data in bikeNo_list:  # append to bike loc whose detectedCount is less than 2
-                bike_scan_data: list
+            for bikeNo in bikeNo_list:  # append to bike loc whose detectedCount is less than 2
+                bike_scan_data: list = bikeNo_dict[bikeNo]  # contains Bike counter
                 if bike_scan_data[-1] >= 2:
+                    # detected more than once ,covered,next
                     continue
                 else:
 
                     root_points.append(bike_scan_data[0:1])  # the point loc out
 
-            points_list = init_points.extend(root_points)
+            init_points.extend(root_points)  # combine two list
+
+            print(f'Extracted list length: {len(init_points)}')
+            print(f'Extracted bike number: {len(bikeNo_dict)}')
             if return_bike_info:
-                return points_list, bikeNo_dict
-            return points_list
+                return init_points, bikeNo_dict
+
+            return init_points
 
 
 if __name__ == '__main__':

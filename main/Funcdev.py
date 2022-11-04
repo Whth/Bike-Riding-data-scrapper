@@ -197,9 +197,12 @@ if __name__ == "__main__":
     manager.content[0]: object
     manager.content[0].update_token_from_net(force_update=False)
 
-    crapper = TangleScrapper(stepLen=0.0026)
+    crapper = TangleScrapper(stepLen=0.0056)
     print(crapper.loc_list)
-    res = crapper.tree_slice(phoneBook_path=a)
-    print(res)
+    result = crapper.tree_slice(phoneBook_path=a, return_bike_info=True, logON=False)
+    print(result)
+    scannedPoint, bikes_dict = result[0], result[1]
+    print(scannedPoint)
+    shader = BikeDataShaders(bikes_dict)
 
     BadDataCleaner.normal_data_clean()  # bad data cleanup
