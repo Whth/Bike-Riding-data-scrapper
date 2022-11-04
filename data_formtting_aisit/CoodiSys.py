@@ -232,24 +232,35 @@ class TangleScrapper(object):
             for emptyPointSerial in emptyPointSerials:  # delete the empty point
                 del init_points[emptyPointSerial]
 
-            bikeNo_list = list(bikeNo_dict.keys())  # list of bikeNo int type
-            for bikeNo in bikeNo_list:  # append to bike loc whose detectedCount is less than 2
-                bike_scan_data: list = bikeNo_dict[bikeNo]  # contains Bike counter
-                if bike_scan_data[-1] >= 2:
-                    # detected more than once ,covered,next
-                    continue
-                else:
-
-                    root_points.append(bike_scan_data[0:1])  # the point loc out
-
+            bikeNo_list = self.coverage_check(bikeNo_dict, root_points)
             init_points.extend(root_points)  # combine two list
-
             print(f'Extracted list length: {len(init_points)}')
-            print(f'Extracted bike number: {len(bikeNo_dict)}')
+            print(f'Extracted bike number: {len(bikeNo_list)}')
             if return_bike_info:
                 return init_points, bikeNo_dict
 
             return init_points
+
+    @staticmethod
+    def coverage_check(bikeNo_dict, root_points):
+        """
+
+        :param bikeNo_dict:
+        :param root_points:
+        :return:
+        """
+        bikeNo_list = list(bikeNo_dict.keys())  # list of bikeNo int type
+        for bikeNo in bikeNo_list:  # append to bike loc whose detectedCount is less than 2
+            bike_scan_data: list = bikeNo_dict[bikeNo]  # contains Bike counter
+            if bike_scan_data[-1] >= 2:
+                # detected more than once ,covered,next
+                continue
+            else:
+                location = [float(bike_scan_data[0]), float(bike_scan_data[1])]  # convert str float
+
+                root_points.append(location)  # the point loc out
+
+        return bikeNo_list
 
 
 if __name__ == '__main__':
