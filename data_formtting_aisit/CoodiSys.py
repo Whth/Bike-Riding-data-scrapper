@@ -37,7 +37,7 @@ def check_point_in_tangle(point: list, tangle: list) -> bool:
 
 
 def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False,
-                      INSERT_TIMESTAMP: bool = False, ) -> list:
+                      INSERT_TIMESTAMP: bool = False, RETURN_DENSITY: bool = False) -> tuple:
     """
     功能：获取某一经纬度周边500(?)米的所有单车信息
     1.传入经纬度和token值
@@ -82,12 +82,19 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
             bike_dict[time_stamp_key] = timeStamp  # inserting
 
     if Bike_raw_data_dict['data']:
-        return bike_data_list  # a list
+        if RETURN_DENSITY:
+            distance_list = []
+
+            for bike in bike_data_list:
+                distance_list.append(float(bike.get('distance')))  # extract distance
+
+            return bike_data_list, np.mean(distance_list)  # return average distance
+        return bike_data_list,  # a list
 
     else:
         # print(bikeData_return.text)
         warnings.warn(f'## EMPTY ECHO ## : {token}')
-        return []
+        return [],
 
 
 class FakeDataConstructor(object):
@@ -163,7 +170,7 @@ class TangleScrapper(object):
             plt.show()
         return node_list
 
-    def tree_slice(self, a_phoneBook=None, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False,
+    def tree_slice(self, a_phoneBook: object = None, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False,
                    logON=True):
         """
         in book out bike_info and points Scand
@@ -232,35 +239,61 @@ class TangleScrapper(object):
             for emptyPointSerial in emptyPointSerials:  # delete the empty point
                 del init_points[emptyPointSerial]
 
-            bikeNo_list = self.coverage_check(bikeNo_dict, root_points)
+            expand_list = self.coverage_check(bikeNo_dict)
+            root_points.extend(expand_list)  # second expand
             init_points.extend(root_points)  # combine two list
+
+            for point in root_points:
+                bikes = getBikes_reformed(point, Book.loop_token(), INSERT_TIMESTAMP=True)
+                for bike in bikes:
+                    if bikeNo_dict.get(bike['bikeNo']):
+                        bike_info = bikeNo_dict[bike['bikeNo']]
+                        bike_info[0], bike_info[1] = bike['lng'], bike['lat']
+                        # timeStamp don't move
+                        bike_info[3] += 1
+                    else:
+                        bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], timeStamp, 1]  # create if it not
+
             print(f'Extracted list length: {len(init_points)}')
-            print(f'Extracted bike number: {len(bikeNo_list)}')
+            print(f'Extracted bike number: {len(bikeNo_dict)}')
+
             if return_bike_info:
                 return init_points, bikeNo_dict
+            return init_points,
 
-            return init_points
+        if usingMethod == 2:
+            pass
+
+    # RECURSIVE_DETECTION = True
+    #
+    # if RECURSIVE_DETECTION:
+    #     searchStack = []  # stack to store search points
+    #     searchStack.extend(init_points)
+    #
+    #     for i, point in enumerate(searchStack):
+    #         f''
 
     @staticmethod
-    def coverage_check(bikeNo_dict, root_points):
+    def coverage_check(bikeNo_dict, boundCount=2) -> list:
         """
 
+        :param boundCount:
         :param bikeNo_dict:
-        :param root_points:
-        :return:
+        :return: a location list contains bike loc whose detectedCount is less than 2
         """
+        loc_list = []
         bikeNo_list = list(bikeNo_dict.keys())  # list of bikeNo int type
         for bikeNo in bikeNo_list:  # append to bike loc whose detectedCount is less than 2
             bike_scan_data: list = bikeNo_dict[bikeNo]  # contains Bike counter
-            if bike_scan_data[-1] >= 2:
+            if bike_scan_data[-1] >= boundCount:
                 # detected more than once ,covered,next
                 continue
             else:
                 location = [float(bike_scan_data[0]), float(bike_scan_data[1])]  # convert str float
 
-                root_points.append(location)  # the point loc out
+                loc_list.append(location)  # the point loc out
 
-        return bikeNo_list
+        return loc_list
 
 
 if __name__ == '__main__':

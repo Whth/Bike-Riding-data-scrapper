@@ -2,6 +2,8 @@ import datetime
 import os
 import warnings
 
+import matplotlib.pyplot as plt
+
 import BadDataCleaner
 import folderHelper
 from CoodiSys import TangleScrapper, BOUND_LOCATION
@@ -111,13 +113,27 @@ class BikeDataShaders:
 
         pass
 
-    def distributeHotMap(self):
+    def distributeHotMap(self, points: dict):
         """
-
+        bike distributeHotMap
         :return:
         """
 
         pass
+
+        pass
+
+    def bikeUsageLineMap(self, location, bikeUsage):
+        pass
+
+    def scanned_points(self, points):
+        """
+
+        :param points:
+        :return:
+        """
+        bgImg = plt.imread(folderHelper.background_img_folder + 'Fix.jpg')
+        fig = plt.figure(figsize=())
 
 
 """

@@ -9,6 +9,7 @@ phoneNumber_file_name = 'phoneBook.json'
 phoneNumber_file_pdir = 'main/'
 phoneNumber_file_path = phoneNumber_file_pdir + phoneNumber_file_name
 
+background_img_folder = 'RecoveredBikeData/img/'
 """
 noticing that the phone number given token does not get expired immediately
 
