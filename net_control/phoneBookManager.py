@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import random
 import time
 import warnings
 
@@ -86,7 +87,7 @@ class PhoneNumber(object):
             self.syc_HALL_LAST_SMS_TIME()
         return self.phone_number
 
-    def send_SMS(self, FREQ_CHECK=False) -> bool:
+    def send_SMS(self, FREQ_CHECK=True) -> bool:
         print(f'FREQ_CHECK:{FREQ_CHECK}')
         """
 
@@ -192,8 +193,10 @@ class PhoneBook_Manager:
             raise Exception
 
         print(f'phoneBook Length {len(self.content)} ')
+        for i, phone in enumerate(self.content):
+            print(f'{i}. {phone}')
 
-    def loop_token(self):
+    def loop_token(self, randomize=True):
         """
         loop find usable token and sleep if not found
         :return:
@@ -204,8 +207,10 @@ class PhoneBook_Manager:
             for phoneNum in self.content:
                 token = phoneNum.get_token()
                 if token:
+                    if randomize:
+                        time.sleep(random.random())  # 1 sec float
                     return token
-            print('searching for token', end='\r')
+            print('searching for token\r', end='')
 
             time.sleep(0.01)
 
@@ -246,3 +251,9 @@ class PhoneBook_Manager:
                 line = json.dumps(phone.create_phone_number_dict()) + '\n'
             book.write(line)
         return
+
+    def updatePhone(self):
+        """
+        doesn't do anything, just update
+        :return:
+        """

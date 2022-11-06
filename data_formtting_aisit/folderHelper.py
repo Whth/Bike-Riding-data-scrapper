@@ -1,6 +1,7 @@
 import os
 import time
 
+ROOT = 'L:/pycharm projects/Bike_Scrapper/'
 ASSET_ROOT_FOLDER = 'RecoveredBikeData/'
 
 bikeData_file_name = "allBikes.txt"
