@@ -2,6 +2,7 @@ import copy
 import datetime
 import json
 import random
+import time
 import warnings
 
 import numpy as np
@@ -37,11 +38,12 @@ def check_point_in_tangle(point: list, tangle: list) -> bool:
 
 
 def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False,
-                      INSERT_TIMESTAMP: bool = False, RETURN_DENSITY: bool = False) -> tuple:
+                      INSERT_TIMESTAMP: bool = False, RETURN_DENSITY: bool = False, BAD_CHECK=True):
     """
     功能：获取某一经纬度周边500(?)米的所有单车信息
     1.传入经纬度和token值
     2.如果顺利，返回经纬度周围500米的所有单车信息，否则显示异常信息
+    retry on time SOUTHERN_SCH error
     """
 
     req_load = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 1,
@@ -64,8 +66,24 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
         req_load = req_load_new
 
     get_bike_url = 'https://api.ttbike.com.cn/api?user.ride.nearBikes'
-    bikeData_return = requests.post(get_bike_url, headers=req_misc.a_random_header(), data=json.dumps(req_load),
-                                    timeout=5)
+
+    bikeData_return = None
+    max_retries = 3
+
+    try:
+        for i in range(max_retries):  # max retries 3 times
+
+            with requests.post(get_bike_url, headers=req_misc.a_random_header(), data=json.dumps(req_load),
+                               timeout=7) as echo:
+                bikeData_return = echo
+            if bikeData_return:
+                break
+            else:
+                time.sleep(random.random())  # wait_time
+    except TimeoutError:
+        print(f'HOlD 20 seconds')
+        time.sleep(20)
+        return []
 
     Bike_raw_data_dict = json.loads(bikeData_return.text)  # return type is dict
 
@@ -75,6 +93,7 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
     expiredCode = 133
     """
     bike_data_list = Bike_raw_data_dict['data']
+
     time_stamp_key = 'timeStamp'
     if INSERT_TIMESTAMP:  # insert timestamp into data
         timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')  # timestamp for this lap
@@ -82,6 +101,10 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
             bike_dict[time_stamp_key] = timeStamp  # inserting
 
     if Bike_raw_data_dict['data']:
+        if BAD_CHECK:
+            if int(Bike_raw_data_dict['data'][0].get('bikeNo')) < 9000000000:
+                warnings.warn('MAY have data corruption')
+                raise ValueError
         if RETURN_DENSITY:
             distance_list = []
 
@@ -89,12 +112,12 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
                 distance_list.append(float(bike.get('distance')))  # extract distance
 
             return bike_data_list, np.mean(distance_list)  # return average distance
-        return bike_data_list,  # a list
+        return bike_data_list  # a list
 
     else:
         # print(bikeData_return.text)
         warnings.warn(f'## EMPTY ECHO ## : {token}')
-        return [],
+        return []
 
 
 class FakeDataConstructor(object):
@@ -194,43 +217,39 @@ class TangleScrapper(object):
                 Book = a_phoneBook
             elif not a_phoneBook and not phoneBook_path:
                 raise Exception
+            init_time = datetime.datetime.now()
 
             Book = PhoneBook_Manager(phoneBook_path)
             timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
             bikeNo_dict = {}  # storing the lng and lat and detected times
             # data_formatting = ['lng', 'lat', 'detectedBikes']
-            points_list = []
+
             root_points = []
             init_points = self.rectangle_slice()
 
             emptyPointSerials = []  # to store the point's serial which is empty
-
-            for serial in range(len(init_points)):
-                init_point = init_points[serial]
+            print(f'scan init points at {init_time}')
+            for serial, init_point in enumerate(init_points):
 
                 point_viewed_bikes = getBikes_reformed(init_point, Book.loop_token(), INSERT_TIMESTAMP=True)  # requests
                 bikesCount = len(point_viewed_bikes)
-                print(f'now [{serial}/{len(init_points)}] [{bikesCount}] bikes scanned')
+
+                print(f'[{serial + 1}/{len(init_points)}] [{bikesCount}] bikes scanned '
+                      f'TimeConsumed: {datetime.datetime.now() - init_time} '
+                      f'AllDetectedBikeCount: {len(bikeNo_dict)}')
 
                 if bikesCount > 0:  # for point that is surrounded by multiple bikes
                     randomBikeSerial = random.randint(0, bikesCount - 1)  # select a random bike
 
-                    a_random_bike = point_viewed_bikes[randomBikeSerial]  # random get a bike from the requests result
+                    a_random_bike: dict = point_viewed_bikes[
+                        randomBikeSerial]  # random get a bike from the requests result
                     location = [float(a_random_bike['lng']), float(a_random_bike['lat'])]
                     if logON:
                         print(f'chose [{randomBikeSerial}] {location}')
 
                     root_points.append(location)  # primitive layer
 
-                    for bike in point_viewed_bikes:  # record the bike detectedCount
-
-                        if bikeNo_dict.get(bike['bikeNo']):
-                            bike_info = bikeNo_dict[bike['bikeNo']]
-                            bike_info[0], bike_info[1] = bike['lng'], bike['lat']
-                            # timeStamp don't move
-                            bike_info[3] += 1
-                        else:
-                            bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], timeStamp, 1]  # create if it not
+                    self.deduplication(bikeNo_dict, point_viewed_bikes)
                 else:
                     # delete the empty point
                     emptyPointSerials.append(serial)
@@ -243,34 +262,49 @@ class TangleScrapper(object):
             root_points.extend(expand_list)  # second expand
             init_points.extend(root_points)  # combine two list
 
-            for point in root_points:
-                bikes = getBikes_reformed(point, Book.loop_token(), INSERT_TIMESTAMP=True)
-                for bike in bikes:
-                    if bikeNo_dict.get(bike['bikeNo']):
-                        bike_info = bikeNo_dict[bike['bikeNo']]
-                        bike_info[0], bike_info[1] = bike['lng'], bike['lat']
-                        # timeStamp don't move
-                        bike_info[3] += 1
-                    else:
-                        bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], timeStamp, 1]  # create if it not
+            print(f'scan second layer')
+            for i, point in enumerate(root_points):
+                point_viewed_bikes = getBikes_reformed(point, Book.loop_token(), INSERT_TIMESTAMP=True)
+                print(
+                    f'root_points [{i}/{len(root_points)}] {point} [{len(point_viewed_bikes)}] '
+                    f'AllDetectedBikeCount: {len(bikeNo_dict)}')
+                self.deduplication(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
+
+            SEARCH_ALL = False
+            if SEARCH_ALL:
+                search_stack = []
+                while len(search_stack) > 0:  # means there may be un scanned points
+                    pass
+
+            self.bike_count_details(bikeNo_dict)
 
             print(f'Extracted list length: {len(init_points)}')
             print(f'Extracted bike number: {len(bikeNo_dict)}')
 
             if return_bike_info:
                 return init_points, bikeNo_dict
-            return init_points,
+            return init_points
 
         if usingMethod == 2:
+            pass
 
-    # RECURSIVE_DETECTION = True
-    #
-    # if RECURSIVE_DETECTION:
-    #     searchStack = []  # stack to store search points
-    #     searchStack.extend(init_points)
-    #
-    #     for i, point in enumerate(searchStack):
-    #         f''
+    @staticmethod
+    def deduplication(bikeNo_dict, point_viewed_bikes) -> None:
+        """
+
+        :param bikeNo_dict:
+        :param point_viewed_bikes:
+        :return:
+        """
+        for bike in point_viewed_bikes:  # record the bike detectedCount
+
+            if bikeNo_dict.get(bike['bikeNo']):
+                bike_info = bikeNo_dict[bike['bikeNo']]
+                bike_info[0], bike_info[1] = bike['lng'], bike['lat']
+                # timeStamp don't move
+                bike_info[3] += 1
+            else:
+                bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], bike['timeStamp'], 1]  # create if it not
 
     @staticmethod
     def coverage_check(bikeNo_dict, boundCount=2) -> list:
@@ -293,6 +327,34 @@ class TangleScrapper(object):
                 loc_list.append(location)  # the point loc out
 
         return loc_list
+
+    @staticmethod
+    def bike_count_details(bikeNo_dict, infoON=True) -> list:
+        """
+
+        :param infoON:
+        :param bikeNo_dict:
+        :return: a list
+        """
+        statistics_list_len = 10
+        allCounter = [0] * statistics_list_len  # each number with its serial is bikesCount and detectedCount
+        # each counter [count ,the count of the bike that has been detected {count} times]
+        for i, bikeNo in enumerate(bikeNo_dict.keys):
+            if bikeNo_dict.get(bikeNo)[2] > statistics_list_len - 1:
+                allCounter[0] += 1  # for bike whose detectedCount is more than the statistics_list_len
+                continue
+
+            allCounter[bikeNo_dict.get(bikeNo)[2]] += 1  # for normal_data
+
+        if infoON:
+            print('--------------------------------')
+            for i, bikeCount in enumerate(allCounter):
+                if i:
+                    print(f'detected {i} times: {bikeCount}')
+                else:
+                    f'detected more than {statistics_list_len - 1} times: {bikeCount}'
+            print('--------------------------------')
+        return allCounter
 
 
 if __name__ == '__main__':

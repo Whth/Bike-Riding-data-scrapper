@@ -8,7 +8,7 @@ bikeData_file_name = "allBikes.txt"
 bikeData_log_file_name = "bikes_variant.log_scanData"
 phoneNumber_file_name = 'phoneBook.json'
 phoneNumber_file_pdir = 'main/'
-phoneNumber_file_path = phoneNumber_file_pdir + phoneNumber_file_name
+phoneNumber_file_path = ROOT + phoneNumber_file_pdir + phoneNumber_file_name
 
 background_img_folder = 'RecoveredBikeData/img/'
 """
@@ -20,7 +20,7 @@ XD
 DEFAULT_VALUE = -1.0
 
 
-def open_CurTime_folder(rootFolder: str = ASSET_ROOT_FOLDER, CREATES_basic_datafile: bool = False):
+def open_CurTime_folder(rootFolder: str = ROOT + ASSET_ROOT_FOLDER, CREATES_basic_datafile: bool = False):
     """
     :param CREATES_basic_datafile:
     :returns the dirName it creates
@@ -52,4 +52,5 @@ def open_CurTime_folder(rootFolder: str = ASSET_ROOT_FOLDER, CREATES_basic_dataf
 
 
 if __name__ == '__main__':
+    print(open_CurTime_folder())
     pass
