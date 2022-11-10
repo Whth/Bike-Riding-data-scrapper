@@ -97,14 +97,17 @@ class PhoneNumber(object):
         req_load = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 6,
                     "action": "user.account.sendCodeV2", "mobile": self.phone_number, "capText": ""}
         head = req_misc.a_random_header()
-        echo = requests.post(apiAdd, headers=head, data=json.dumps(req_load), timeout=6)
 
         if FREQ_CHECK:
             SMS_CD = 65
             while time.time() - self.HALL_LAST_SMS_TIME < SMS_CD:
                 time.sleep(1)
-                print(f'Waiting HALL_LAST_SMS_TIME remaining {SMS_CD - time.time() + self.HALL_LAST_SMS_TIME:%.f}',
-                      end='\r')
+                print(
+                    f'\rWaiting HALL_LAST_SMS_TIME remaining [{(SMS_CD - time.time() + self.HALL_LAST_SMS_TIME):.1f}] seconds',
+                    end='')
+
+        echo = requests.post(apiAdd, headers=head, data=json.dumps(req_load), timeout=6)
+
         print(echo.text)
         if 'ok' in echo.text:
             print('Message Sent')
@@ -155,7 +158,7 @@ class PhoneNumber(object):
             warnings.warn(f'seems token:[{self.token}] is valid ,pass')
             return True
 
-        if self.phone_number and self.send_SMS():
+        if bool(self.phone_number) and self.send_SMS():
             # code = req_misc.input_with_timeout('please input SMScode: ')
             code = input('please input SMScode: ')
             if code == '':
@@ -178,7 +181,7 @@ class PhoneBook_Manager:
         :param book_path:
         """
 
-        self.content: list = []
+        self.bookContent: list = []
         if os.path.exists(book_path):
             self.book_path = book_path
             self.loadBook()  # loadBook form database
@@ -192,8 +195,8 @@ class PhoneBook_Manager:
             print('created')
             raise Exception
 
-        print(f'phoneBook Length {len(self.content)} ')
-        for i, phone in enumerate(self.content):
+        print(f'phoneBook Length {len(self.bookContent)} ')
+        for i, phone in enumerate(self.bookContent):
             print(f'{i}. {phone}')
 
     def loop_token(self, randomize=True):
@@ -204,7 +207,7 @@ class PhoneBook_Manager:
 
         while True:
 
-            for phoneNum in self.content:
+            for phoneNum in self.bookContent:
                 token = phoneNum.get_token()
                 if token:
                     if randomize:
@@ -231,14 +234,16 @@ class PhoneBook_Manager:
 
         with open(self.book_path, mode='r') as book:
             for line in book.readlines():  # for each line create an empty obj
-
+                if line == '' or line == '\n':
+                    # skip empty lines
+                    continue
                 tempObj = PhoneNumber()  # empty object
                 phone_dict = json.loads(line)
                 tempObj.update(phone_number=phone_dict['phoneNumber'],
                                token=phone_dict['token'],
                                cooldown=phone_dict['tokenCooldown'])
 
-                self.content.append(copy.deepcopy(tempObj))
+                self.bookContent.append(copy.deepcopy(tempObj))
         return
 
     def dumpBook(self):
@@ -247,13 +252,34 @@ class PhoneBook_Manager:
         :return:
         """
         with open(self.book_path, mode='w') as book:
-            for phone in self.content:
-                line = json.dumps(phone.create_phone_number_dict()) + '\n'
-            book.write(line)
+            head = ''
+            for phone in self.bookContent:
+                line = head + json.dumps(phone.create_phone_number_dict())
+                head = '\n'
+                book.write(line)
         return
 
     def updatePhone(self):
         """
-        doesn't do anything, just update
+        doesn't do anythi
         :return:
         """
+
+    def update_all_token(self) -> bool:
+        """
+        with update and check
+        :return:
+        """
+        try:
+
+            for phone in self.bookContent:
+                phone.update_token_from_net()
+        except:
+            return False
+
+        self.dumpBook()
+        return True
+
+
+if __name__ == '__main__':
+    pass

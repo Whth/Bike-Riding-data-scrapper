@@ -1,3 +1,4 @@
+import copy
 import datetime
 import os
 import warnings
@@ -7,6 +8,7 @@ import matplotlib.pyplot as plt
 import BadDataCleaner
 import folderHelper
 from CoodiSys import TangleScrapper, BOUND_LOCATION
+from folderHelper import phoneNumber_file_path as book_Path
 from phoneBookManager import PhoneBook_Manager
 
 # <editor-fold desc="Data Capture Section">
@@ -17,38 +19,8 @@ available_code,phoneNumber,last_phone_used_time,expired_code,LoginToken,last_Log
 """
 
 
-# <editor-fold desc="Function Updates">
-
-
-def filter_rubbished_point(bikeList: list, USING_METHOD: int = 1) -> int:
-    """
-    remove rubbished_point
-    :param USING_METHOD:
-    :param bikeList:
-    :return: Cleaned list Length
-    """
-
-    print(f'!!Cleaning bad data!!\n'
-          f'list Length: {len(bikeList)}')
-    if USING_METHOD == 1:
-        removed_counter = 0
-        for bikeDictSerial in range(len(bikeList)):  # creating serial number
-            if bikeList[bikeDictSerial].get('bikeNo')[0] == '2':  # finding element using get method dont a[]==
-                del bikeList[bikeDictSerial]
-                removed_counter += 1
-            else:
-                continue
-        print(f'!!Removed [{removed_counter}] bikes!!\n'
-              f'Cleaned list Length: {len(bikeList)}\n'
-              f'_______________________________')
-        return len(bikeList)
-
-
-# </editor-fold>
-
-
 def getAllBike(phoneBook_path, loc_list: list = BOUND_LOCATION,
-               stepLen: float = 0.0011, USE_NEW_VERSION: bool = False, USE_TREE=False) -> dict:
+               stepLen: float = 0.0011, USE_NEW_VERSION: bool = False, USE_TREE=False):
     """
     no judge if the data obtained is in range
     :param phoneBook_path:
@@ -62,8 +34,16 @@ def getAllBike(phoneBook_path, loc_list: list = BOUND_LOCATION,
     a_phoneBook = PhoneBook_Manager(phoneBook_path)
 
     if USE_TREE:
-        result = slicer.tree_slice(a_phoneBook=a_phoneBook, return_bike_info=True)  # detail return
-        return result
+        scannedPoint, bikes_dict = slicer.tree_slice(a_phoneBook=a_phoneBook, return_bike_info=True)  # detail return
+        bikes_list = []
+        new_bike_dict = {}
+        for bikeNo in bikes_dict.keys():
+            new_bike_dict['bikeNo'] = bikeNo
+            new_bike_dict['lng'], new_bike_dict['lat'] = bikes_dict.get(bikeNo)[0], bikes_dict.get(bikeNo)[0]
+            new_bike_dict['timeStamp'] = bikes_dict.get(bikeNo)[-1]
+
+            bikes_list.append(copy.deepcopy(new_bike_dict))
+        return scannedPoint, bikes_dict
 
     raise Exception  # raise Exception if no match found
 
@@ -94,8 +74,8 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
                                            loc_list=loc_list,
                                            USE_NEW_VERSION=USE_NEW_VERSION
                                            , USE_TREE=True)  # return list of all bikes with dict format
-                shader = BikeDataShaders(bike_list=bikes)
-                shader.distributeHotMap()
+                shaders = BikeDataShaders(bike_list=bikes)
+                shaders.scanned_points(Points, 'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\img\s.jpg')
 
         except KeyboardInterrupt:
 
@@ -109,7 +89,7 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
 class BikeDataShaders:
 
     def __init__(self, bike_list):
-        self.content: list = bike_list
+        self.bike_list: list = bike_list
 
         pass
 
@@ -118,22 +98,83 @@ class BikeDataShaders:
         bike distributeHotMap
         :return:
         """
+        bgImg = plt.imread(folderHelper.background_img_folder + 'Fix.jpg')
 
+        def points_to_xyList(points_list) -> tuple:
+            """
+            x :lng ,y :lat
+            :param points_list:
+            :return:
+            """
+            xList, yList = [], []
+            for point in points_list:
+                xList.append(point[0])
+                yList.append(point[1])
+            return xList, yList
+
+        lng_list, lat_list = points_to_xyList(points_list=points)
+
+        plt.imshow(bgImg)
+
+        plt.title('SCANNED POINTS', fontweight="bold")
+
+        plt.scatter(lng_list, lat_list, s=13, alpha=0.2)
+        plt.xlabel('lng'), plt.ylabel('lat')
+
+        plt.show()
         pass
 
     def bikeUsageLineMap(self, location, bikeUsage):
+        pass
 
-    def scanned_points(self, points):
+    @staticmethod
+    def scanned_points(points, SAVE_IMG_PATH):
         """
 
+        :param SAVE_IMG_PATH:
         :param points:
         :return:
         """
-        fig = plt.figure(figsize=())
+        try:
+            bgImg = plt.imread(os.path.pardir + folderHelper.background_img_folder + 'Fix.jpg')
+        except:
+            bgImg = plt.imread('L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\img\Fix.jpg')
+
+        def points_to_xyList(points_list) -> tuple:
+            """
+            x :lng ,y :lat
+            :param points_list:
+            :return:
+            """
+            xList, yList = [], []
+            for point in points_list:
+                xList.append(point[0])
+                yList.append(point[1])
+            return xList, yList
+
+        lng_list, lat_list = points_to_xyList(points_list=points)
+
+        plt.figure(dpi=200)
+        plt.title('SCANNED POINTS', fontweight="bold")
+
+        plt.scatter(lng_list, lat_list, s=2000, alpha=0.08)
+        plt.xlabel('lng'), plt.ylabel('lat')
+        # plt.imshow(bgImg, extent=[CoodiSys.BOUND_LOCATION[1], CoodiSys.BOUND_LOCATION[3], CoodiSys.BOUND_LOCATION[0],
+        #                           CoodiSys.BOUND_LOCATION[2]])
+        # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
+        plt.show()
+
+        try:
+            plt.savefig(SAVE_IMG_PATH)
+        except:
+            pass
+        return
+
+
 """
     def display_bikes_on_map(self, area: list, mapTitle: str = None, saveImage: bool = False) -> None:
 
-        
+
         # display_bikes_on_map
         # :param saveImage:
         # :param mapTitle:
@@ -146,7 +187,7 @@ class BikeDataShaders:
         # |
         # |
         # |_______lng
-        
+
     completeCount = 0
     bikes_list_len = len(bikes_list)
     data_display_multiplier = 1.0
@@ -196,23 +237,46 @@ class BikeDataShaders:
 
 """
 
+
 # </editor-fold>
+def dumpBike_data(bike_data: dict, file_dir: str) -> bool:
+    """
+
+
+    :param file_dir:
+    :param bike_data:
+    :return: True if success
+    """
+    path = file_dir + folderHelper.bikeData_file_name
+    if not os.path.exists(file_dir):
+        warnings.warn('no such file or directory')
+        return False
+    head = ''
+    with open(path, mode='a+') as f:
+        for bike in bike_data.keys():
+            dataBody: list = bikes_dict.get(bike)
+            line = f'{head}{dataBody[2]}\t{bike}\t{dataBody[0]}\t{dataBody[1]}'
+            head = '\n'
+            f.write(line)
+    return True
 
 
 if __name__ == "__main__":
-    a = os.path.abspath(folderHelper.phoneNumber_file_name)
-    print(a)
-    manager = PhoneBook_Manager(book_path=a)
+    manager = PhoneBook_Manager(book_path=book_Path)
+    manager.update_all_token()
 
-    manager.content[0]: object
-    manager.content[0].update_token_from_net(force_update=False)
-
-    crapper = TangleScrapper(stepLen=0.0066)
+    crapper = TangleScrapper(stepLen=0.0011)
     print(crapper.loc_list)
 
-    scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=a, return_bike_info=True, logON=False)
+    scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False)
 
-    print(scannedPoint)
+    print(len(scannedPoint))
     shader = BikeDataShaders(bikes_dict)
+    timeFolder = folderHelper.open_CurTime_folder()
+    shader.scanned_points(scannedPoint,
+                          timeFolder + 'images/' + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M') + '.png')
 
+    dumpBike_data(bikes_dict, folderHelper.open_CurTime_folder())
+    # shader.distributeHotMap()
     BadDataCleaner.normal_data_clean()  # bad data cleanup
+    print(len(bikes_dict))

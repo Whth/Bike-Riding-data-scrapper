@@ -26,11 +26,12 @@ class WxPusher_comp(WxPusher):
 
     def log_scanData(self, data):
         log_dir = open_CurTime_folder() + bikeData_log_file_name
+
         log_content = {
             'totalDetectedBikes_within': bike_count_detail[0],
             'duplicatedBikes': bike_count_detail[1],
             'totalDetectedBikes': bike_count_detail[0] + bike_count_detail[1],
-            'timestamp': timestamp
+            'timestamp':
         }
 
         if not os.path.exists(log_dir):  # check if the log_scanData file exists
