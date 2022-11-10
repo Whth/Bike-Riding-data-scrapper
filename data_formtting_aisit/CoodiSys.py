@@ -103,8 +103,15 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
     if Bike_raw_data_dict['data']:
         if BAD_CHECK:
             if int(Bike_raw_data_dict['data'][0].get('bikeNo')) < 9000000000:
-                warnings.warn('MAY have data corruption')
-                raise ValueError
+                print(Bike_raw_data_dict['data'])
+                print(Bike_raw_data_dict['data'][0].get('bikeNo'))
+                warnings.warn(f'MAY have data corruption {datetime.datetime.now()}')
+                keyboad = req_misc.input_with_timeout('enter y to continue|ay to all continue|sl to silent')
+                allPass = False
+                if keyboad == 'ay':
+                    allPass = True
+                if keyboad == 'y' or keyboad == 'Y':
+                    raise ValueError
         if RETURN_DENSITY:
             distance_list = []
 
@@ -246,10 +253,10 @@ class TangleScrapper(object):
                     location = [float(a_random_bike['lng']), float(a_random_bike['lat'])]
                     if logON:
                         print(f'chose [{randomBikeSerial}] {location}')
+                    if location not in root_points:  # preventing same location
+                        root_points.append(location)  # primitive layer
 
-                    root_points.append(location)  # primitive layer
-
-                    self.deduplication(bikeNo_dict, point_viewed_bikes)
+                    self.merge_dedup(bikeNo_dict, point_viewed_bikes)
                 else:
                     # delete the empty point
                     emptyPointSerials.append(serial)
@@ -263,18 +270,38 @@ class TangleScrapper(object):
             init_points.extend(root_points)  # combine two list
 
             print(f'scan second layer')
-            for i, point in enumerate(root_points):
-                point_viewed_bikes = getBikes_reformed(point, Book.loop_token(), INSERT_TIMESTAMP=True)
-                print(
-                    f'root_points [{i}/{len(root_points)}] {point} [{len(point_viewed_bikes)}] '
-                    f'AllDetectedBikeCount: {len(bikeNo_dict)}')
-                self.deduplication(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
 
-            SEARCH_ALL = False
+            SEARCH_ALL = True
             if SEARCH_ALL:
                 search_stack = []
+                search_stack = root_points  # init search_stack with root_points
+                min_detectedCount = 1
+                stack_push_counter = 0
                 while len(search_stack) > 0:  # means there may be un scanned points
-                    pass
+                    random.shuffle(search_stack)
+                    stack_push_counter += 1  # push
+                    for i, point in enumerate(search_stack):
+                        token = Book.loop_token()
+                        point_viewed_bikes = getBikes_reformed(point, token, INSERT_TIMESTAMP=True)
+
+                        print(
+                            f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
+                            f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
+                        self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
+                    search_stack = []
+                    self.bike_count_details(bikeNo_dict)
+                    for bikeNo in bikeNo_dict.keys():
+                        if bikeNo_dict.get(bikeNo)[-1] == min_detectedCount:
+                            location = [bikeNo_dict.get(bikeNo)[0], bikeNo_dict.get(bikeNo)[1]]  # lng lat
+                            search_stack.append(location)
+            else:
+                for i, point in enumerate(root_points):
+                    point_viewed_bikes = getBikes_reformed(point, Book.loop_token(), INSERT_TIMESTAMP=True)
+
+                    print(
+                        f'root_points [{i}/{len(root_points)}] {point} [{len(point_viewed_bikes)}] '
+                        f'AllDetectedBikeCount: {len(bikeNo_dict)}')
+                    self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
 
             self.bike_count_details(bikeNo_dict)
 
@@ -289,7 +316,7 @@ class TangleScrapper(object):
             pass
 
     @staticmethod
-    def deduplication(bikeNo_dict, point_viewed_bikes) -> None:
+    def merge_dedup(bikeNo_dict, point_viewed_bikes) -> None:
         """
 
         :param bikeNo_dict:
@@ -329,22 +356,23 @@ class TangleScrapper(object):
         return loc_list
 
     @staticmethod
-    def bike_count_details(bikeNo_dict, infoON=True) -> list:
+    def bike_count_details(bikeNo_dict, infoON=True, statistics_list_len=20) -> list:
         """
 
+        :param statistics_list_len:
         :param infoON:
         :param bikeNo_dict:
         :return: a list
         """
-        statistics_list_len = 10
+
         allCounter = [0] * statistics_list_len  # each number with its serial is bikesCount and detectedCount
         # each counter [count ,the count of the bike that has been detected {count} times]
-        for i, bikeNo in enumerate(bikeNo_dict.keys):
-            if bikeNo_dict.get(bikeNo)[2] > statistics_list_len - 1:
+        for i, bikeNo in enumerate(list(bikeNo_dict.keys())):
+            if bikeNo_dict.get(bikeNo)[-1] > statistics_list_len - 1:
                 allCounter[0] += 1  # for bike whose detectedCount is more than the statistics_list_len
                 continue
 
-            allCounter[bikeNo_dict.get(bikeNo)[2]] += 1  # for normal_data
+            allCounter[bikeNo_dict.get(bikeNo)[-1]] += 1  # for normal_data
 
         if infoON:
             print('--------------------------------')
@@ -352,7 +380,7 @@ class TangleScrapper(object):
                 if i:
                     print(f'detected {i} times: {bikeCount}')
                 else:
-                    f'detected more than {statistics_list_len - 1} times: {bikeCount}'
+                    print(f'detected more than {statistics_list_len - 1} times: {bikeCount}')
             print('--------------------------------')
         return allCounter
 

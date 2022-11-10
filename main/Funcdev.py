@@ -157,7 +157,7 @@ class BikeDataShaders:
         plt.figure(dpi=200)
         plt.title('SCANNED POINTS', fontweight="bold")
 
-        plt.scatter(lng_list, lat_list, s=2000, alpha=0.08)
+        plt.scatter(lng_list, lat_list, s=20, alpha=0.3)
         plt.xlabel('lng'), plt.ylabel('lat')
         # plt.imshow(bgImg, extent=[CoodiSys.BOUND_LOCATION[1], CoodiSys.BOUND_LOCATION[3], CoodiSys.BOUND_LOCATION[0],
         #                           CoodiSys.BOUND_LOCATION[2]])
@@ -263,13 +263,13 @@ def dumpBike_data(bike_data: dict, file_dir: str) -> bool:
 
 if __name__ == "__main__":
     manager = PhoneBook_Manager(book_path=book_Path)
-    manager.update_all_token()
+    # manager.update_all_token()
 
-    crapper = TangleScrapper(stepLen=0.0011)
+    crapper = TangleScrapper(stepLen=0.0017)
     print(crapper.loc_list)
 
     scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False)
-
+    crapper.bike_count_details(bikes_dict)
     print(len(scannedPoint))
     shader = BikeDataShaders(bikes_dict)
     timeFolder = folderHelper.open_CurTime_folder()

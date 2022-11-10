@@ -24,14 +24,13 @@ class WxPusher_comp(WxPusher):
                           topic_ids=self.TOPIC_IDS,
                           token='AT_7gneRS02ois8YkgVWeCS0Q9iEV3Lq4Xl')
 
-    def log_scanData(self, data):
+    @staticmethod
+    def log_scanData(data: list):
         log_dir = open_CurTime_folder() + bikeData_log_file_name
 
         log_content = {
-            'totalDetectedBikes_within': bike_count_detail[0],
-            'duplicatedBikes': bike_count_detail[1],
-            'totalDetectedBikes': bike_count_detail[0] + bike_count_detail[1],
-            'timestamp':
+            'totalDetectedBikes': data[0],
+            'timestamp': data[1]
         }
 
         if not os.path.exists(log_dir):  # check if the log_scanData file exists

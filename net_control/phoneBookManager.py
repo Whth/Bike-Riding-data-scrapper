@@ -160,7 +160,7 @@ class PhoneNumber(object):
 
         if bool(self.phone_number) and self.send_SMS():
             # code = req_misc.input_with_timeout('please input SMScode: ')
-            code = input('please input SMScode: ')
+            code = input(f'[{self.phone_number}] please input SMScode: ')
             if code == '':
                 return False
             if self.request_newToken(code=code):
