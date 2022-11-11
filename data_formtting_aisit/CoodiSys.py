@@ -36,9 +36,8 @@ def check_point_in_tangle(point: list, tangle: list) -> bool:
     temp = [float(point[0]), float(point[1])]
     point = temp
     inRange = False
-    if tangle[0] < point[0] < tangle[2]:  # x lock
-        if tangle[1] < point[1] < tangle[3]:  # y lock
-            inRange = True
+    if tangle[0] < point[0] < tangle[2] and tangle[1] < point[1] < tangle[3]:  # x lock y lock
+        inRange = True
 
     return inRange
 
@@ -211,13 +210,13 @@ class TangleScrapper(object):
             plt.show()
         return node_list
 
-    def tree_slice(self, a_phoneBook: object = None, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False,
-                   logON=True, virtual_bound=True):
+    def tree_slice(self, phoneBook_path, usingMethod=1, return_bike_info: bool = False,
+                   logON=True, virtual_bound=True, SEARCH_ALL=True):
         """
         in book out bike_info and points Scand
+        :param SEARCH_ALL:
         :param virtual_bound:
         :param logON:
-        :param a_phoneBook:
         :param phoneBook_path:
         :param usingMethod:
         :param return_bike_info:
@@ -232,14 +231,10 @@ class TangleScrapper(object):
 
             """
 
-            if a_phoneBook and not phoneBook_path:
-                Book = a_phoneBook
-            elif not a_phoneBook and not phoneBook_path:
-                raise Exception
             init_time = datetime.datetime.now()
 
             Book = PhoneBook_Manager(phoneBook_path)
-            timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+
             bikeNo_dict = {}  # storing the lng and lat and detected times
             # data_formatting = ['lng', 'lat', 'detectedBikes']
 
@@ -282,7 +277,6 @@ class TangleScrapper(object):
 
             print(f'scan second layer')
 
-            SEARCH_ALL = True
             if SEARCH_ALL:
                 search_stack = []
                 last_stack = 0
@@ -304,7 +298,8 @@ class TangleScrapper(object):
                             f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
                             f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
                         self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
-                        self.inRange_pruner(bikeNo_dict)  # del external bikes
+                        if virtual_bound:
+                            self.inRange_pruner(bikeNo_dict)  # del external bikes
 
                     self.bike_count_details(bikeNo_dict)
 

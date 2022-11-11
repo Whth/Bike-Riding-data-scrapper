@@ -16,11 +16,11 @@ class WxPusher_comp(WxPusher):
             '7619',
         ]
 
-    def pushInfo(self, info: list):
+    def pushInfo(self, DetectedBikesCount, ScannedPointsCount):
 
-        self.send_message(f'NormalFormatDBikes: {info[0]}\n'
-                          f'DuplicatedBikes: {info[1]}\n'
-                          f'ALL AREA TotalDetected: {info[0] + info[1]}\n',
+        self.send_message(f'DetectedBikesCount: {DetectedBikesCount}\n'
+                          f'ScannedPointsCount: {ScannedPointsCount}\n'
+                          ,
                           uids=self.UIDS,
                           topic_ids=self.TOPIC_IDS,
                           token='AT_7gneRS02ois8YkgVWeCS0Q9iEV3Lq4Xl')
