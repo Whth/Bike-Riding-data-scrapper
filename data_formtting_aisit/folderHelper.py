@@ -20,7 +20,7 @@ XD
 DEFAULT_VALUE = -1.0
 
 
-def open_CurTime_folder(rootFolder: str = ASSET_ROOT_FOLDER, CREATES_basic_datafile: bool = False):
+def open_CurTime_folder(rootFolder: str = ROOT + ASSET_ROOT_FOLDER, CREATES_basic_datafile: bool = False):
     """
     :param CREATES_basic_datafile:
     :returns the dirName it creates
