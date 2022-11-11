@@ -1,11 +1,11 @@
 import copy
 import datetime
 import os
+import time
 import warnings
 
 import matplotlib.pyplot as plt
 
-import BadDataCleaner
 import folderHelper
 from CoodiSys import TangleScrapper, BOUND_LOCATION
 from folderHelper import phoneNumber_file_path as book_Path
@@ -125,6 +125,7 @@ class BikeDataShaders:
         pass
 
     def bikeUsageLineMap(self, location, bikeUsage):
+
         pass
 
     @staticmethod
@@ -155,7 +156,9 @@ class BikeDataShaders:
         lng_list, lat_list = points_to_xyList(points_list=points)
 
         plt.figure(dpi=200)
+        plt.axis('equal')
         plt.title('SCANNED POINTS', fontweight="bold")
+        plt.suptitle(f'{len(points)} points')
 
         plt.scatter(lng_list, lat_list, s=20, alpha=0.3)
         plt.xlabel('lng'), plt.ylabel('lat')
@@ -263,20 +266,27 @@ def dumpBike_data(bike_data: dict, file_dir: str) -> bool:
 
 if __name__ == "__main__":
     manager = PhoneBook_Manager(book_path=book_Path)
-    # manager.update_all_token()
+    manager.update_all_token()
 
-    crapper = TangleScrapper(stepLen=0.0017)
+    crapper = TangleScrapper(stepLen=0.0016)
     print(crapper.loc_list)
+    while True:
+        try:
+            scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False)
 
-    scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False)
-    crapper.bike_count_details(bikes_dict)
-    print(len(scannedPoint))
-    shader = BikeDataShaders(bikes_dict)
-    timeFolder = folderHelper.open_CurTime_folder()
-    shader.scanned_points(scannedPoint,
-                          timeFolder + 'images/' + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M') + '.png')
+            crapper.bike_count_details(bikes_dict)
+            print(f'the cannedPoints : {len(scannedPoint)}')
+            shader = BikeDataShaders(bikes_dict)
+            timeFolder = folderHelper.open_CurTime_folder()
+            pic_path = timeFolder + 'images/' + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M') + '.png'
+            print(f"try save at {pic_path}")
+            shader.scanned_points(scannedPoint,
+                                  SAVE_IMG_PATH=pic_path)
 
-    dumpBike_data(bikes_dict, folderHelper.open_CurTime_folder())
-    # shader.distributeHotMap()
-    BadDataCleaner.normal_data_clean()  # bad data cleanup
-    print(len(bikes_dict))
+            dumpBike_data(bikes_dict, folderHelper.open_CurTime_folder())
+            # shader.distributeHotMap()
+            time.sleep(129)
+        except KeyboardInterrupt:
+
+            print(f'END')
+            break

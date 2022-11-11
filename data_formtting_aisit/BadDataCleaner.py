@@ -5,6 +5,8 @@ Bad data cleaners
 import os
 import time
 
+import folderHelper
+
 
 def fix_bad_allBikes(filename: str, infoON=True) -> bool:
     """
@@ -86,9 +88,10 @@ def check_BikeNo_chainSame(number: str, start: int = 0, end: int = None) -> bool
     :param end:
     :return:
     """
+
     # print(number)
     if number == '':
-        print('blank number may have data corupted')
+        print('blank number may have data corrupted')
         raise
     if end < start:
         raise
@@ -130,6 +133,7 @@ def tree_folder_to_list(root: str = '.', filter_ON=False) -> list:
     :return:
     """
     fine_data_fileName = 'allBikes.txt'
+
     resultList = []
     folder_remain = [root]
 
@@ -161,7 +165,7 @@ def tree_folder_to_list(root: str = '.', filter_ON=False) -> list:
 # fix_bad_allBikes(bad_data_txt)
 def normal_data_clean() -> None:
     print('\n\nCLEANSE TIME')
-    for file in tree_folder_to_list('L:\pycharm projects\master\dataset\RecoveredBikeData', filter_ON=True):
+    for file in tree_folder_to_list(folderHelper.ASSET_ROOT_FOLDER, filter_ON=True):
         fix_bad_allBikes(file.path, infoON=False)
     print('\n\nCLEANSE DONE')
     return

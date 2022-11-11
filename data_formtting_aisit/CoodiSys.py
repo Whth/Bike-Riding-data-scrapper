@@ -12,14 +12,18 @@ from matplotlib import pyplot as plt
 import req_misc
 from phoneBookManager import PhoneBook_Manager
 
-SOUTHERN_SCH = [120.697855, 27.919326, 120.707664, 27.926667]
+"""
+lng lat ,lng lat
+"""
 BOUND_LOCATION = [120.691208, 27.913032, 120.709791, 27.931309]
-NORTHERN_SCH = [120.704529, 27.924249, 120.718147, 27.931749]
-D_AREA = [120.706223, 27.91666, 120.708851, 27.919135]
-D_PARK = [120.70648, 27.918711, 120.708036, 27.919072]
-E_AREA = [120.714814, 27.922776, 120.716799, 27.924619]
-A_AREA = [120.700832, 27.925936, 120.703653, 27.927596]
-B_AREA = [120.70381, 27.929415, 120.708912, 27.932558]
+
+NORTHERN_SCH = [120.701227, 27.922759, BOUND_LOCATION[2], BOUND_LOCATION[3]]
+SOUTHERN_SCH = [BOUND_LOCATION[0], BOUND_LOCATION[1], 120.701335, 27.920465]
+
+DE_AREA = [120.706223, 27.91666, 120.708851, 27.919135]
+
+C_AREA = [120.701227, 27.922759, BOUND_LOCATION[2], NORTHERN_SCH[1]]
+MALL = [SOUTHERN_SCH[2], BOUND_LOCATION[1], BOUND_LOCATION[2], DE_AREA[1]]
 
 
 def check_point_in_tangle(point: list, tangle: list) -> bool:
@@ -29,6 +33,8 @@ def check_point_in_tangle(point: list, tangle: list) -> bool:
     :param tangle:
     :return:
     """
+    temp = [float(point[0]), float(point[1])]
+    point = temp
     inRange = False
     if tangle[0] < point[0] < tangle[2]:  # x lock
         if tangle[1] < point[1] < tangle[3]:  # y lock
@@ -38,7 +44,7 @@ def check_point_in_tangle(point: list, tangle: list) -> bool:
 
 
 def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False,
-                      INSERT_TIMESTAMP: bool = False, RETURN_DENSITY: bool = False, BAD_CHECK=True):
+                      INSERT_TIMESTAMP: bool = False, RETURN_DENSITY: bool = False, BAD_CHECK=True, Hold_retry=False):
     """
     功能：获取某一经纬度周边500(?)米的所有单车信息
     1.传入经纬度和token值
@@ -79,10 +85,19 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
             if bikeData_return:
                 break
             else:
+                print('sleep a while.pr')
                 time.sleep(random.random())  # wait_time
-    except TimeoutError:
+    except:
+        if requests.get('https://www.baidu.com/') != 200:
+            print('bad request')
+            raise Exception
         print(f'HOlD 20 seconds')
         time.sleep(20)
+        if Hold_retry:
+            return getBikes_reformed(point_coordinates=point_coordinates, token=token,
+                                     INSERT_TIMESTAMP=INSERT_TIMESTAMP, USE_NEW_VERSION=USE_NEW_VERSION,
+                                     RETURN_DENSITY=RETURN_DENSITY, BAD_CHECK=BAD_CHECK)
+
         return []
 
     Bike_raw_data_dict = json.loads(bikeData_return.text)  # return type is dict
@@ -95,23 +110,18 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
     bike_data_list = Bike_raw_data_dict['data']
 
     time_stamp_key = 'timeStamp'
-    if INSERT_TIMESTAMP:  # insert timestamp into data
-        timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')  # timestamp for this lap
-        for bike_dict in bike_data_list:
-            bike_dict[time_stamp_key] = timeStamp  # inserting
 
     if Bike_raw_data_dict['data']:
         if BAD_CHECK:
             if int(Bike_raw_data_dict['data'][0].get('bikeNo')) < 9000000000:
                 print(Bike_raw_data_dict['data'])
-                print(Bike_raw_data_dict['data'][0].get('bikeNo'))
+                # print(Bike_raw_data_dict['data'][0].get('bikeNo'))
+
                 warnings.warn(f'MAY have data corruption {datetime.datetime.now()}')
-                keyboad = req_misc.input_with_timeout('enter y to continue|ay to all continue|sl to silent')
-                allPass = False
-                if keyboad == 'ay':
-                    allPass = True
-                if keyboad == 'y' or keyboad == 'Y':
-                    raise ValueError
+        if INSERT_TIMESTAMP:  # insert timestamp into data
+            timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')  # timestamp for this lap
+            for bike_dict in bike_data_list:
+                bike_dict[time_stamp_key] = timeStamp  # inserting
         if RETURN_DENSITY:
             distance_list = []
 
@@ -119,6 +129,7 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
                 distance_list.append(float(bike.get('distance')))  # extract distance
 
             return bike_data_list, np.mean(distance_list)  # return average distance
+
         return bike_data_list  # a list
 
     else:
@@ -201,9 +212,10 @@ class TangleScrapper(object):
         return node_list
 
     def tree_slice(self, a_phoneBook: object = None, phoneBook_path=None, usingMethod=1, return_bike_info: bool = False,
-                   logON=True):
+                   logON=True, virtual_bound=True):
         """
         in book out bike_info and points Scand
+        :param virtual_bound:
         :param logON:
         :param a_phoneBook:
         :param phoneBook_path:
@@ -234,7 +246,7 @@ class TangleScrapper(object):
             root_points = []
             init_points = self.rectangle_slice()
 
-            emptyPointSerials = []  # to store the point's serial which is empty
+            temp_list = []  # to store the point's serial which is not empty
             print(f'scan init points at {init_time}')
             for serial, init_point in enumerate(init_points):
 
@@ -257,13 +269,12 @@ class TangleScrapper(object):
                         root_points.append(location)  # primitive layer
 
                     self.merge_dedup(bikeNo_dict, point_viewed_bikes)
+                    temp_list.append(init_points[serial])
                 else:
-                    # delete the empty point
-                    emptyPointSerials.append(serial)
+
                     continue
 
-            for emptyPointSerial in emptyPointSerials:  # delete the empty point
-                del init_points[emptyPointSerial]
+            init_points = temp_list
 
             expand_list = self.coverage_check(bikeNo_dict)
             root_points.extend(expand_list)  # second expand
@@ -274,11 +285,16 @@ class TangleScrapper(object):
             SEARCH_ALL = True
             if SEARCH_ALL:
                 search_stack = []
+                last_stack = 0
                 search_stack = root_points  # init search_stack with root_points
-                min_detectedCount = 1
+                min_detectedCount = 2
+
                 stack_push_counter = 0
+                min_increment = 5
+
                 while len(search_stack) > 0:  # means there may be un scanned points
-                    random.shuffle(search_stack)
+
+                    last_stack = search_stack
                     stack_push_counter += 1  # push
                     for i, point in enumerate(search_stack):
                         token = Book.loop_token()
@@ -288,20 +304,24 @@ class TangleScrapper(object):
                             f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
                             f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
                         self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
-                    search_stack = []
-                    self.bike_count_details(bikeNo_dict)
-                    for bikeNo in bikeNo_dict.keys():
-                        if bikeNo_dict.get(bikeNo)[-1] == min_detectedCount:
-                            location = [bikeNo_dict.get(bikeNo)[0], bikeNo_dict.get(bikeNo)[1]]  # lng lat
-                            search_stack.append(location)
-            else:
-                for i, point in enumerate(root_points):
-                    point_viewed_bikes = getBikes_reformed(point, Book.loop_token(), INSERT_TIMESTAMP=True)
+                        self.inRange_pruner(bikeNo_dict)  # del external bikes
 
-                    print(
-                        f'root_points [{i}/{len(root_points)}] {point} [{len(point_viewed_bikes)}] '
-                        f'AllDetectedBikeCount: {len(bikeNo_dict)}')
-                    self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
+                    self.bike_count_details(bikeNo_dict)
+
+                    search_stack = []
+                    search_stack = self.coverage_check(bikeNo_dict, boundCount=min_detectedCount)
+
+                    if search_stack is last_stack:
+                        # meaning no bike was found
+
+                        break
+                    else:
+                        random.shuffle(search_stack)
+
+                    if abs(len(last_stack) - len(search_stack)) < min_increment:
+                        break
+                    init_points.extend(search_stack)
+                    time.sleep(3)
 
             self.bike_count_details(bikeNo_dict)
 
@@ -339,7 +359,7 @@ class TangleScrapper(object):
 
         :param boundCount:
         :param bikeNo_dict:
-        :return: a location list contains bike loc whose detectedCount is less than 2
+        :return: a location list contains bike loc whose detectedCount is less than boundCount
         """
         loc_list = []
         bikeNo_list = list(bikeNo_dict.keys())  # list of bikeNo int type
@@ -356,7 +376,7 @@ class TangleScrapper(object):
         return loc_list
 
     @staticmethod
-    def bike_count_details(bikeNo_dict, infoON=True, statistics_list_len=20) -> list:
+    def bike_count_details(bikeNo_dict, infoON=True, statistics_list_len=60) -> list:
         """
 
         :param statistics_list_len:
@@ -383,6 +403,24 @@ class TangleScrapper(object):
                     print(f'detected more than {statistics_list_len - 1} times: {bikeCount}')
             print('--------------------------------')
         return allCounter
+
+    def inRange_pruner(self, bikeNo_dict: dict) -> None:
+        """
+
+        :param bikeNo_dict:
+        :return:
+        """
+        counter = 0
+        for bikeNo in list(bikeNo_dict.keys()):
+            location = [bikeNo_dict.get(bikeNo)[0], bikeNo_dict.get(bikeNo)[1]]
+
+            if check_point_in_tangle(location, self.loc_list):
+                continue
+            else:
+                counter += 1
+                del bikeNo_dict[bikeNo]
+
+        print(f'totally delete {counter} external bikes')
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ import os
 import time
 
 ROOT = 'L:/pycharm projects/Bike_Scrapper/'
-ASSET_ROOT_FOLDER = 'RecoveredBikeData/'
+ASSET_ROOT_FOLDER = ROOT + 'RecoveredBikeData/'
 
 bikeData_file_name = "allBikes.txt"
 bikeData_log_file_name = "bikes_variant.log_scanData"
@@ -20,7 +20,7 @@ XD
 DEFAULT_VALUE = -1.0
 
 
-def open_CurTime_folder(rootFolder: str = ROOT + ASSET_ROOT_FOLDER, CREATES_basic_datafile: bool = False):
+def open_CurTime_folder(rootFolder: str = ASSET_ROOT_FOLDER, CREATES_basic_datafile: bool = False):
     """
     :param CREATES_basic_datafile:
     :returns the dirName it creates
@@ -32,7 +32,7 @@ def open_CurTime_folder(rootFolder: str = ROOT + ASSET_ROOT_FOLDER, CREATES_basi
     time_str = time.strftime('%Y-%m %d', time.localtime())
     firstFolder = time_str.split()[0]
     secondFolder = time_str.split()[1]
-    created_folder = f'{rootFolder}/{firstFolder}/{secondFolder}/'
+    created_folder = f'{rootFolder}{firstFolder}/{secondFolder}/'
     if os.path.exists(created_folder):
         return created_folder
     else:

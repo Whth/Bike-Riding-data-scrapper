@@ -1,3 +1,4 @@
+import datetime
 import os
 
 from wxpusher import WxPusher
@@ -25,12 +26,15 @@ class WxPusher_comp(WxPusher):
                           token='AT_7gneRS02ois8YkgVWeCS0Q9iEV3Lq4Xl')
 
     @staticmethod
-    def log_scanData(data: list):
+    def log_scanData(bikeNo_dict: dict):
+        """
+        :return:
+        """
         log_dir = open_CurTime_folder() + bikeData_log_file_name
 
         log_content = {
-            'totalDetectedBikes': data[0],
-            'timestamp': data[1]
+            'totalDetectedBikes': len(bikeNo_dict),
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%s')
         }
 
         if not os.path.exists(log_dir):  # check if the log_scanData file exists
