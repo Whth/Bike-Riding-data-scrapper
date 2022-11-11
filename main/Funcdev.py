@@ -87,17 +87,66 @@ def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInte
 # </editor-fold>
 
 class BikeDataShaders:
+    """
+    lat
+    |
+    |
+    |_______lng
+    """
 
-    def __init__(self, bike_list):
-        self.bike_list: list = bike_list
-
+    def __init__(self, bikeNo_dict, scanned_points):
+        self.bikeNo_dict: dict = bikeNo_dict
+        self.scanned = scanned_points
         pass
 
-    def distributeHotMap(self, points: dict):
+    def distributeHotMap(self, bikeNo_dict: dict, SAVE_IMG_PATH=''):
         """
         bike distributeHotMap
         :return:
         """
+        bgImg = plt.imread(folderHelper.background_img_folder + 'Fix.jpg')
+
+        def BikeNo_dict_to_XY(bikeNo_dict) -> tuple:
+            """
+            x :lng ,y :lat
+            :param bikeNo_dict:
+            :return:
+            """
+            xList, yList = [], []
+            for bikeNo in bikeNo_dict:
+                xList.append(float(bikeNo_dict.get(bikeNo)[0]))
+                yList.append(float(bikeNo_dict.get(bikeNo)[1]))
+            return xList, yList
+
+        lng_list, lat_list = BikeNo_dict_to_XY(bikeNo_dict=self.bikeNo_dict)
+        temp = (BOUND_LOCATION[0], BOUND_LOCATION[2], BOUND_LOCATION[1], BOUND_LOCATION[3])
+
+        plt.figure(dpi=200)
+        plt.imshow(bgImg, extent=temp)
+
+        plt.title('SCANNED BIKES', fontweight="bold")
+        plt.suptitle(f'{len(bikeNo_dict)} BIKES')
+
+        plt.scatter(lng_list, lat_list, marker='.', s=3, alpha=0.8, c='r')
+        plt.xlabel('lng'), plt.ylabel('lat')
+        if SAVE_IMG_PATH:
+            plt.savefig(SAVE_IMG_PATH)
+        plt.show()
+        pass
+
+    def bikeUsageLineMap(self, location, bikeUsage):
+
+        pass
+
+    @staticmethod
+    def scanned_points(points, SAVE_IMG_PATH=''):
+        """
+
+        :param SAVE_IMG_PATH:
+        :param points:
+        :return:
+        """
+
         bgImg = plt.imread(folderHelper.background_img_folder + 'Fix.jpg')
 
         def points_to_xyList(points_list) -> tuple:
@@ -113,64 +162,24 @@ class BikeDataShaders:
             return xList, yList
 
         lng_list, lat_list = points_to_xyList(points_list=points)
-
-        plt.imshow(bgImg)
-
-        plt.title('SCANNED POINTS', fontweight="bold")
-
-        plt.scatter(lng_list, lat_list, s=13, alpha=0.2)
-        plt.xlabel('lng'), plt.ylabel('lat')
-
-        plt.show()
-        pass
-
-    def bikeUsageLineMap(self, location, bikeUsage):
-
-        pass
-
-    @staticmethod
-    def scanned_points(points, SAVE_IMG_PATH):
-        """
-
-        :param SAVE_IMG_PATH:
-        :param points:
-        :return:
-        """
-        try:
-            bgImg = plt.imread(os.path.pardir + folderHelper.background_img_folder + 'Fix.jpg')
-        except:
-            bgImg = plt.imread('L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\img\Fix.jpg')
-
-        def points_to_xyList(points_list) -> tuple:
-            """
-            x :lng ,y :lat
-            :param points_list:
-            :return:
-            """
-            xList, yList = [], []
-            for point in points_list:
-                xList.append(point[0])
-                yList.append(point[1])
-            return xList, yList
-
-        lng_list, lat_list = points_to_xyList(points_list=points)
+        temp = (BOUND_LOCATION[0], BOUND_LOCATION[2], BOUND_LOCATION[1], BOUND_LOCATION[3])
 
         plt.figure(dpi=200)
         plt.axis('equal')
         plt.title('SCANNED POINTS', fontweight="bold")
         plt.suptitle(f'{len(points)} points')
 
-        plt.scatter(lng_list, lat_list, s=20, alpha=0.3)
+        plt.imshow(bgImg, extent=temp)  # insert background_img
+
+        plt.scatter(lng_list, lat_list, marker='+', alpha=1, c='r')
         plt.xlabel('lng'), plt.ylabel('lat')
-        # plt.imshow(bgImg, extent=[CoodiSys.BOUND_LOCATION[1], CoodiSys.BOUND_LOCATION[3], CoodiSys.BOUND_LOCATION[0],
-        #                           CoodiSys.BOUND_LOCATION[2]])
+
         # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
+
+        if SAVE_IMG_PATH:
+            plt.savefig(SAVE_IMG_PATH)
         plt.show()
 
-        try:
-            plt.savefig(SAVE_IMG_PATH)
-        except:
-            pass
         return
 
 
@@ -268,23 +277,25 @@ if __name__ == "__main__":
     manager = PhoneBook_Manager(book_path=book_Path)
     manager.update_all_token()
 
-    crapper = TangleScrapper(stepLen=0.0016)
+    crapper = TangleScrapper(stepLen=0.0017)
     print(crapper.loc_list)
     while True:
         try:
-            scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False)
+            scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False,
+                                                          SEARCH_ALL=True)
 
-            crapper.bike_count_details(bikes_dict)
-            print(f'the cannedPoints : {len(scannedPoint)}')
-            shader = BikeDataShaders(bikes_dict)
+            shader = BikeDataShaders(bikes_dict, scannedPoint)
+
             timeFolder = folderHelper.open_CurTime_folder()
-            pic_path = timeFolder + 'images/' + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M') + '.png'
-            print(f"try save at {pic_path}")
-            shader.scanned_points(scannedPoint,
-                                  SAVE_IMG_PATH=pic_path)
+            pic_folder = timeFolder + 'images/'
+            basic_name = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M') + '.png'
+            print(f"try save at {pic_folder}")
+
+            shader.scanned_points(scannedPoint, SAVE_IMG_PATH=pic_folder + 'ScannedPoints-' + basic_name)
+            shader.distributeHotMap(bikes_dict, SAVE_IMG_PATH=pic_folder + 'BikeDistributedHotMap-' + basic_name)
 
             dumpBike_data(bikes_dict, folderHelper.open_CurTime_folder())
-            # shader.distributeHotMap()
+
             time.sleep(129)
         except KeyboardInterrupt:
 

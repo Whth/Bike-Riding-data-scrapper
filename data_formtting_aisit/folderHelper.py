@@ -10,7 +10,7 @@ phoneNumber_file_name = 'phoneBook.json'
 phoneNumber_file_pdir = 'main/'
 phoneNumber_file_path = ROOT + phoneNumber_file_pdir + phoneNumber_file_name
 
-background_img_folder = 'RecoveredBikeData/img/'
+background_img_folder = ASSET_ROOT_FOLDER + 'img/'
 """
 noticing that the phone number given token does not get expired immediately
 
@@ -20,23 +20,28 @@ XD
 DEFAULT_VALUE = -1.0
 
 
-def open_CurTime_folder(rootFolder: str = ROOT + ASSET_ROOT_FOLDER, CREATES_basic_datafile: bool = False):
+def open_CurTime_folder(rootFolder: str = ASSET_ROOT_FOLDER, CREATES_basic_datafile: bool = False):
     """
     :param CREATES_basic_datafile:
     :returns the dirName it creates
     :param rootFolder:
     :return: the dir that creates
     """
-    if rootFolder == '':
-        rootFolder = os.path.abspath('.')  # current directory
+
     time_str = time.strftime('%Y-%m %d', time.localtime())
-    firstFolder = time_str.split()[0]
-    secondFolder = time_str.split()[1]
+    firstFolder, secondFolder = tuple(time_str.split())
+
     created_folder = f'{rootFolder}{firstFolder}/{secondFolder}/'
+    if os.path.exists(created_folder + 'images/'):
+        pass
+    else:
+        print('create images/')
+        os.makedirs(created_folder + 'images/')
     if os.path.exists(created_folder):
         return created_folder
     else:
         os.makedirs(created_folder)
+
     if os.path.exists(created_folder):
 
         print(f'timeTreeFolder {created_folder} has been created')
@@ -48,7 +53,7 @@ def open_CurTime_folder(rootFolder: str = ROOT + ASSET_ROOT_FOLDER, CREATES_basi
             print('basic_datafile created')
         return created_folder
     else:
-        raise
+        raise FileNotFoundError
 
 
 if __name__ == '__main__':
