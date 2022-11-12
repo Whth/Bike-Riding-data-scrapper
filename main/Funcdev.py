@@ -166,13 +166,12 @@ class BikeDataShaders:
         temp = (BOUND_LOCATION[0], BOUND_LOCATION[2], BOUND_LOCATION[1], BOUND_LOCATION[3])
 
         plt.figure(dpi=200)
-        plt.axis('equal')
+        plt.imshow(bgImg, extent=temp)  # insert background_img
+        plt.hot()
         plt.title('SCANNED POINTS', fontweight="bold")
         plt.suptitle(f'{len(points)} points')
 
-        plt.imshow(bgImg, extent=temp)  # insert background_img
-
-        plt.scatter(lng_list, lat_list, marker='o', s=200, alpha=1, c='r')
+        plt.scatter(lng_list, lat_list, marker='o', s=200, alpha=0.16, c='r')
         plt.xlabel('lng'), plt.ylabel('lat')
 
         # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
@@ -279,7 +278,7 @@ if __name__ == "__main__":
     manager.update_all_token()
     pusher = push_helper.WxPusher_comp()
 
-    crapper = TangleScrapper(stepLen=0.0037)
+    crapper = TangleScrapper(stepLen=0.0017)
 
     while True:
         try:

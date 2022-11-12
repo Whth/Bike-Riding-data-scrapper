@@ -7,23 +7,50 @@ import warnings
 
 import numpy as np
 import requests
-from matplotlib import pyplot as plt
 
 import req_misc
 from phoneBookManager import PhoneBook_Manager
 
 """
 lng lat ,lng lat
+
+lat
+|
+|
+|_______lng
 """
 BOUND_LOCATION = [120.691208, 27.913032, 120.709791, 27.931309]
 
 NORTHERN_SCH = [120.701227, 27.922759, BOUND_LOCATION[2], BOUND_LOCATION[3]]
+NORTHERN_SCH_GATE = [120.704141, 27.924129]
+
 SOUTHERN_SCH = [BOUND_LOCATION[0], BOUND_LOCATION[1], 120.701335, 27.920465]
+SOUTHERN_SCH_GATE = [120.700536, 27.917799]
 
 DE_AREA = [120.706223, 27.91666, 120.708851, 27.919135]
+DE_AREA_GATE = [120.70884, 27.918759]
 
 C_AREA = [120.701227, 27.922759, BOUND_LOCATION[2], NORTHERN_SCH[1]]
-MALL = [SOUTHERN_SCH[2], BOUND_LOCATION[1], BOUND_LOCATION[2], DE_AREA[1]]
+C_AREA_GATE = [120.706458, 27.921396]
+
+MALL_AREA = [SOUTHERN_SCH[2], BOUND_LOCATION[1], BOUND_LOCATION[2], DE_AREA[1]]
+MALL_AREA_GATE = [120.706158, 27.916794]
+
+IG_1 = [120.687941, 27.927006, 120.696267, 27.931557]
+IG_2 = [120.686324, 27.922987, 120.691174, 27.928371]
+COLONY = [120.692472, 27.921593, 120.697504, 27.92548]  # a place where a lot of bikes are stored
+
+IGNORE_AREA = [IG_1, IG_2, COLONY]
+
+
+def check_in_polygon(point: list, polygon_node_list: list) -> bool:
+    """
+
+    :param point: [lng ,lat]
+    :param polygon_node_list: a list that contains all the node of tht polygon
+    :return: if the point is in polygon
+    """
+    pass
 
 
 def check_point_in_tangle(point: list, tangle: list) -> bool:
@@ -145,24 +172,24 @@ class FakeDataConstructor(object):
 
 class TangleScrapper(object):
 
-    def __init__(self, loc_list: list = BOUND_LOCATION, stepLen: float = 0.0011, ignore_loc_list: list = None):
+    def __init__(self, loc_list: list = BOUND_LOCATION, stepLen: float = 0.0011, ignore_loc_list: list = IGNORE_AREA):
         """
         default constructor op on the whole school area
         :param loc_list:
         """
         self.loc_list = loc_list
         self.stepLen = stepLen
+        self.ignore_loc_list = ignore_loc_list
         print(f'loc_list: {self.loc_list} stepLen: {stepLen}')
+        print(f'IGNORE_AREA: {self.ignore_loc_list}')
         pass
 
-    def rectangle_slice(self, disPlayPic: bool = False, precision: int = 6) -> list:
+    def rectangle_slice(self, precision: int = 6) -> list:
         """
         attention: This function will not function properly when called with a line_liked tangle,demanding img improvements
         BOUND_LOCATION: defined in the other docs
 
         :param precision:
-        :param disPlayPic:
-
         :return: node_list containing point within the rectangle defined by two conner
 
         lat
@@ -188,28 +215,6 @@ class TangleScrapper(object):
                 tempNode[0] = round(lngRange[i], precision)  # x
                 tempNode[1] = round(latRange[j], precision)  # y
                 node_list.append(tempNode.copy())
-        if disPlayPic:
-            data_display_multiplier = 1
-
-            plt.figure(figsize=(len(lngRange) / 1.2, len(latRange) / 1.2), dpi=130)
-
-            plt.axis('equal')
-
-            for node in node_list:
-                plt.scatter(node[0], node[1], s=5)
-                plt.scatter(node[0], node[1], alpha=0.5, s=2000)
-
-            plt.grid()
-
-            """
-            labeling
-            """
-            plt.suptitle(f"({len(lngRange)}X{len(latRange)}) {len(node_list)} Points", fontsize=16, color='blue')
-            plt.title(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
-            plt.xlabel(f'Longitude deg', loc='left')
-            plt.ylabel(f'Latitude deg', loc='top')
-
-            plt.show()
         return node_list
 
     def tree_slice(self, phoneBook_path, usingMethod: int = 1, return_bike_info: bool = False,
@@ -241,7 +246,7 @@ class TangleScrapper(object):
             loc_precision = 6
             root_points = []
             init_points = self.rectangle_slice(precision=loc_precision)
-            print(init_points)
+
             temp_list = []  # to store the point's serial which is not empty
             print(f'scan init points at {init_time}')
             for serial, init_point in enumerate(init_points):
@@ -276,9 +281,16 @@ class TangleScrapper(object):
 
             init_points = temp_list
 
-            expand_list = self.coverage_check(bikeNo_dict)
+            expand_list = []
+            for point in self.coverage_check(bikeNo_dict):  # get low coverage location
+                if check_point_in_tangle(point, self.loc_list):
+                    expand_list.append(point)
+
             root_points.extend(expand_list)  # second expand
+            root_points = self.del_ignore_points(root_points)
+
             init_points.extend(root_points)  # combine two list
+            init_points = self.del_ignore_points(init_points)
 
             print(f'scan second layer')
 
@@ -311,7 +323,7 @@ class TangleScrapper(object):
 
                     search_stack = []
                     search_stack = self.coverage_check(bikeNo_dict, boundCount=min_detectedCount)
-
+                    search_stack = self.del_ignore_points(search_stack)
                     if search_stack is last_stack:
                         # meaning no bike was found
 
@@ -424,6 +436,21 @@ class TangleScrapper(object):
                 del bikeNo_dict[bikeNo]
 
         print(f'totally delete {counter} external bikes')
+
+    def del_ignore_points(self, points) -> list:
+        temp_list = []
+
+        for point in points:
+            store = True
+
+            for ignore_loc in self.ignore_loc_list:
+                if check_point_in_tangle(point, ignore_loc):
+                    store = False
+
+            if store:
+                temp_list.append(point)
+
+        return temp_list
 
 
 if __name__ == '__main__':
