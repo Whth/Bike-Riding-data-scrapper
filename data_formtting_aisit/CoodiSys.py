@@ -114,9 +114,10 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
                 print('sleep a while.pr')
                 time.sleep(random.random())  # wait_time
     except:
-        if requests.get('https://www.baidu.com/') != 200:
+        if not requests.get('https://www.baidu.com/'):
             print('bad request')
-            raise Exception
+            warnings.warn('MAY HAVE CORRUPTION')
+
         print(f'HOlD 20 seconds')
         time.sleep(20)
         if Hold_retry:
@@ -254,7 +255,8 @@ class TangleScrapper(object):
                 point_viewed_bikes = getBikes_reformed(init_point, Book.loop_token(), INSERT_TIMESTAMP=True)  # requests
                 bikesCount = len(point_viewed_bikes)
 
-                print(f'[{serial + 1}/{len(init_points)}] [{bikesCount}] bikes scanned '
+                print(f'[{serial + 1}/{len(init_points)}] [{bikesCount}] scanned '
+                      f'{init_points[serial]}'
                       f'TimeConsumed: {datetime.datetime.now() - init_time} '
                       f'AllDetectedBikeCount: {len(bikeNo_dict)}')
 
@@ -316,6 +318,7 @@ class TangleScrapper(object):
                             f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
                             f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
                         self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
+
                         if virtual_bound:
                             self.inRange_prune(bikeNo_dict)  # del external bikes
 
@@ -451,6 +454,37 @@ class TangleScrapper(object):
                 temp_list.append(point)
 
         return temp_list
+
+
+class DataSorter(object):
+
+    def __init__(self, bikeNo_dict: dict):
+        self.bikeNo_dict = bikeNo_dict
+
+    @staticmethod
+    def location_of_dict(bikeNo_dict_value: list) -> list:
+        """
+
+        :param bikeNo_dict_value:
+        :return: lng ,lat  should all be str
+        """
+        location = [bikeNo_dict_value[0], bikeNo_dict_value[1]]
+        return location
+
+    def AREA_resort(self, AREA):
+        """
+        :AREA: target location
+        :return: bikeNo_dict that contains bike in DE_AREA
+        """
+        temp = {}
+        for bikeNo in self.bikeNo_dict.keys():
+            loc = self.location_of_dict(bikeNo_dict_value=self.bikeNo_dict.get(bikeNo))
+            if check_point_in_tangle(loc, AREA):
+                temp[bikeNo] = self.bikeNo_dict.get(bikeNo)  # add the point to the sum dict
+
+        return temp
+
+    def :
 
 
 if __name__ == '__main__':
