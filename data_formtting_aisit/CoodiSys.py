@@ -8,7 +8,9 @@ import warnings
 import numpy as np
 import requests
 
+import folderHelper
 import req_misc
+from folderHelper import bikeData_log_file_name
 from phoneBookManager import PhoneBook_Manager
 
 """
@@ -75,7 +77,7 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
     功能：获取某一经纬度周边500(?)米的所有单车信息
     1.传入经纬度和token值
     2.如果顺利，返回经纬度周围500米的所有单车信息，否则显示异常信息
-    retry on time SOUTHERN_SCH error
+
     """
 
     req_load = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 1,
@@ -111,29 +113,24 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
             if bikeData_return:
                 break
             else:
-                print('sleep a while.pr')
+                print('sleep a while')
                 time.sleep(random.random())  # wait_time
     except:
         if not requests.get('https://www.baidu.com/'):
             print('bad request')
             warnings.warn('MAY HAVE CORRUPTION')
+        else:
+            print(f'HOlD 20 seconds')
+            time.sleep(20)
+            if Hold_retry:
+                return getBikes_reformed(point_coordinates=point_coordinates, token=token,
+                                         INSERT_TIMESTAMP=INSERT_TIMESTAMP, USE_NEW_VERSION=USE_NEW_VERSION,
+                                         RETURN_DENSITY=RETURN_DENSITY, BAD_CHECK=BAD_CHECK)
 
-        print(f'HOlD 20 seconds')
-        time.sleep(20)
-        if Hold_retry:
-            return getBikes_reformed(point_coordinates=point_coordinates, token=token,
-                                     INSERT_TIMESTAMP=INSERT_TIMESTAMP, USE_NEW_VERSION=USE_NEW_VERSION,
-                                     RETURN_DENSITY=RETURN_DENSITY, BAD_CHECK=BAD_CHECK)
 
-        return []
 
     Bike_raw_data_dict = json.loads(bikeData_return.text)  # return type is dict
 
-    """
-
-    passCode = 0
-    expiredCode = 133
-    """
     bike_data_list = Bike_raw_data_dict['data']
 
     time_stamp_key = 'timeStamp'
@@ -143,8 +140,8 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
             if int(Bike_raw_data_dict['data'][0].get('bikeNo')) < 9000000000:
                 print(Bike_raw_data_dict['data'])
                 # print(Bike_raw_data_dict['data'][0].get('bikeNo'))
-
                 warnings.warn(f'MAY have data corruption {datetime.datetime.now()}')
+
         if INSERT_TIMESTAMP:  # insert timestamp into data
             timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')  # timestamp for this lap
             for bike_dict in bike_data_list:
@@ -458,8 +455,25 @@ class TangleScrapper(object):
 
 class DataSorter(object):
 
-    def __init__(self, bikeNo_dict: dict):
+    def __init__(self, bikeNo_dict: dict, timeStamp: str):
+        """
+
+        :param bikeNo_dict:
+        :param timeStamp:
+        """
+        self.dataset = {}
+        self.C_AREA_dict = {}
+        self.DE_AREA_dict = {}
+        self.SOUTHERN_SCH_dict = {}
+        self.NORTHERN_SCH_dict = {}
+        self.MALL_AREA_dict = {}
+        self.WANDERING_bike_sum = 0
+
+        self.HALL_bike_sum = len(bikeNo_dict)
         self.bikeNo_dict = bikeNo_dict
+        self.timeStamp = timeStamp
+
+        self.ALL_AREA_RESORT()
 
     @staticmethod
     def location_of_dict(bikeNo_dict_value: list) -> list:
@@ -484,7 +498,32 @@ class DataSorter(object):
 
         return temp
 
-    def :
+    def ALL_AREA_RESORT(self, infoON=True, SAVE=True):
+        print(f'ALL_AREA_RESORT')
+        print(f'----------------------------------------------------------------')
+        self.SOUTHERN_SCH_dict = self.AREA_resort(SOUTHERN_SCH)
+        self.NORTHERN_SCH_dict = self.AREA_resort(NORTHERN_SCH)
+        self.DE_AREA_dict = self.AREA_resort(DE_AREA)
+        self.C_AREA_dict = self.AREA_resort(C_AREA)
+        self.MALL_AREA_dict = self.AREA_resort(MALL_AREA)
+        self.WANDERING_bike_sum = self.HALL_bike_sum - len(self.C_AREA_dict) - len(self.DE_AREA_dict) - len(
+            self.SOUTHERN_SCH_dict) - len(self.NORTHERN_SCH_dict) - len(self.MALL_AREA_dict)
+
+        self.dataset = {'HALL_bike_sum': self.HALL_bike_sum,
+                        'WANDERING_bike_sum': self.WANDERING_bike_sum,
+                        'SOUTHERN_SCH': len(self.SOUTHERN_SCH_dict),
+                        'NORTHERN_SCH': len(self.NORTHERN_SCH_dict),
+                        'DE_AREA': len(self.DE_AREA_dict),
+                        'C_AREA': len(self.C_AREA_dict),
+                        'MALL_AREA': len(self.MALL_AREA_dict),
+                        'timeStamp': self.timeStamp}
+
+        if infoON:
+            for key in self.dataset.keys():
+                print(f'{key}: {self.dataset.get(key)}')
+        if SAVE:
+            with open(folderHelper.open_CurTime_folder() + bikeData_log_file_name, mode='a') as f:
+                f.write(f'{json.dumps(self.dataset)}\n')
 
 
 if __name__ == '__main__':

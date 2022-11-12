@@ -5,7 +5,8 @@ ROOT = 'L:/pycharm projects/Bike_Scrapper/'
 ASSET_ROOT_FOLDER = ROOT + 'RecoveredBikeData/'
 
 bikeData_file_name = "allBikes.txt"
-bikeData_log_file_name = "bikes_variant.log_scanData"
+bikeData_log_file_name = "bikes_variant.log"
+
 phoneNumber_file_name = 'phoneBook.json'
 phoneNumber_file_pdir = 'main/'
 phoneNumber_file_path = ROOT + phoneNumber_file_pdir + phoneNumber_file_name

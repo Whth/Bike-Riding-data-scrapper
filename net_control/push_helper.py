@@ -16,10 +16,12 @@ class WxPusher_comp(WxPusher):
             '7619',
         ]
 
-    def pushInfo(self, DetectedBikesCount, ScannedPointsCount):
+    def pushInfo(self, DetectedBikesCount, ScannedPointsCount, dataset=None):
 
-        self.send_message(f'DetectedBikesCount: {DetectedBikesCount}\n'
-                          f'ScannedPointsCount: {ScannedPointsCount}\n'
+        msg = f'DetectedBikesCount: {DetectedBikesCount}\nScannedPointsCount: {ScannedPointsCount}\n'
+        if dataset:
+            msg = msg + f'\n\n{dataset}'
+        self.send_message(msg
                           ,
                           uids=self.UIDS,
                           topic_ids=self.TOPIC_IDS,

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 import folderHelper
 import push_helper
-from CoodiSys import TangleScrapper, BOUND_LOCATION
+from CoodiSys import TangleScrapper, BOUND_LOCATION, DataSorter
 from folderHelper import phoneNumber_file_path as book_Path
 from phoneBookManager import PhoneBook_Manager
 
@@ -217,12 +217,14 @@ if __name__ == "__main__":
         try:
             scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False,
                                                           SEARCH_ALL=True)
-            pusher.pushInfo(len(bikes_dict), len(scannedPoint))
+            timeStamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')
+            sorter = DataSorter(bikes_dict, timeStamp=timeStamp)
+            pusher.pushInfo(len(bikes_dict), len(scannedPoint), sorter.dataset)
             shader = BikeDataShaders(bikes_dict, scannedPoint)
 
             timeFolder = folderHelper.open_CurTime_folder()
             pic_folder = timeFolder + 'images/'
-            basic_name = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M') + '.png'
+            basic_name = timeStamp + '.png'
             print(f"try save at {pic_folder}")
 
             shader.scanned_points(scannedPoint, SAVE_IMG_PATH=pic_folder + 'ScannedPoints-' + basic_name)
