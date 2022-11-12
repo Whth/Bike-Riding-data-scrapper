@@ -172,7 +172,7 @@ class BikeDataShaders:
 
         plt.imshow(bgImg, extent=temp)  # insert background_img
 
-        plt.scatter(lng_list, lat_list, marker='+', alpha=1, c='r')
+        plt.scatter(lng_list, lat_list, marker='o', s=200, alpha=1, c='r')
         plt.xlabel('lng'), plt.ylabel('lat')
 
         # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
@@ -279,8 +279,8 @@ if __name__ == "__main__":
     manager.update_all_token()
     pusher = push_helper.WxPusher_comp()
 
-    crapper = TangleScrapper(stepLen=0.0017)
-    print(crapper.loc_list)
+    crapper = TangleScrapper(stepLen=0.0037)
+
     while True:
         try:
             scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False,
@@ -298,8 +298,8 @@ if __name__ == "__main__":
 
             dumpBike_data(bikes_dict, folderHelper.open_CurTime_folder())
 
-            time.sleep(129)
-        except KeyboardInterrupt:
+            time.sleep(180)
+        except:
 
-            print(f'END')
+            print(f'\n\nEND')
             break

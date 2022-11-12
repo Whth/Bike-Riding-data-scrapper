@@ -145,22 +145,24 @@ class FakeDataConstructor(object):
 
 class TangleScrapper(object):
 
-    def __init__(self, loc_list: list = BOUND_LOCATION, stepLen: float = 0.0011):
+    def __init__(self, loc_list: list = BOUND_LOCATION, stepLen: float = 0.0011, ignore_loc_list: list = None):
         """
         default constructor op on the whole school area
         :param loc_list:
         """
         self.loc_list = loc_list
         self.stepLen = stepLen
-
+        print(f'loc_list: {self.loc_list} stepLen: {stepLen}')
         pass
 
-    def rectangle_slice(self, disPlayPic: bool = False) -> list:
+    def rectangle_slice(self, disPlayPic: bool = False, precision: int = 6) -> list:
         """
         attention: This function will not function properly when called with a line_liked tangle,demanding img improvements
         BOUND_LOCATION: defined in the other docs
+
+        :param precision:
         :param disPlayPic:
-        :param step:
+
         :return: node_list containing point within the rectangle defined by two conner
 
         lat
@@ -183,8 +185,8 @@ class TangleScrapper(object):
         for i in range(len(lngRange)):
             for j in range(len(latRange)):
                 tempNode = copy.deepcopy(Node)
-                tempNode[0] = lngRange[i]  # x
-                tempNode[1] = latRange[j]  # y
+                tempNode[0] = round(lngRange[i], precision)  # x
+                tempNode[1] = round(latRange[j], precision)  # y
                 node_list.append(tempNode.copy())
         if disPlayPic:
             data_display_multiplier = 1
@@ -210,12 +212,11 @@ class TangleScrapper(object):
             plt.show()
         return node_list
 
-    def tree_slice(self, phoneBook_path, usingMethod=1, return_bike_info: bool = False,
-                   logON=True, virtual_bound=True, SEARCH_ALL=True):
+    def tree_slice(self, phoneBook_path, usingMethod: int = 1, return_bike_info: bool = False,
+                   logON=True, SEARCH_ALL=True):
         """
         in book out bike_info and points Scand
         :param SEARCH_ALL:
-        :param virtual_bound:
         :param logON:
         :param phoneBook_path:
         :param usingMethod:
@@ -237,10 +238,10 @@ class TangleScrapper(object):
 
             bikeNo_dict = {}  # storing the lng and lat and detected times
             # data_formatting = ['lng', 'lat', 'detectedBikes']
-
+            loc_precision = 6
             root_points = []
-            init_points = self.rectangle_slice()
-
+            init_points = self.rectangle_slice(precision=loc_precision)
+            print(init_points)
             temp_list = []  # to store the point's serial which is not empty
             print(f'scan init points at {init_time}')
             for serial, init_point in enumerate(init_points):
@@ -253,14 +254,18 @@ class TangleScrapper(object):
                       f'AllDetectedBikeCount: {len(bikeNo_dict)}')
 
                 if bikesCount > 0:  # for point that is surrounded by multiple bikes
+
                     randomBikeSerial = random.randint(0, bikesCount - 1)  # select a random bike
 
                     a_random_bike: dict = point_viewed_bikes[
                         randomBikeSerial]  # random get a bike from the requests result
-                    location = [float(a_random_bike['lng']), float(a_random_bike['lat'])]
+                    location = [round(float(a_random_bike['lng']), loc_precision),
+                                round(float(a_random_bike['lat']), loc_precision)]
+
                     if logON:
                         print(f'chose [{randomBikeSerial}] {location}')
-                    if location not in root_points:  # preventing same location
+                    if check_point_in_tangle(location, self.loc_list) and location not in root_points:
+                        # preventing same location and external location
                         root_points.append(location)  # primitive layer
 
                     self.merge_dedup(bikeNo_dict, point_viewed_bikes)
@@ -278,8 +283,9 @@ class TangleScrapper(object):
             print(f'scan second layer')
 
             if SEARCH_ALL:
+                virtual_bound = True
                 search_stack = []
-                last_stack = 0
+                last_stack = []
                 search_stack = root_points  # init search_stack with root_points
                 min_detectedCount = 2
 
@@ -299,7 +305,7 @@ class TangleScrapper(object):
                             f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
                         self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
                         if virtual_bound:
-                            self.inRange_pruner(bikeNo_dict)  # del external bikes
+                            self.inRange_prune(bikeNo_dict)  # del external bikes
 
                     self.bike_count_details(bikeNo_dict)
 
@@ -349,9 +355,10 @@ class TangleScrapper(object):
                 bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], bike['timeStamp'], 1]  # create if it not
 
     @staticmethod
-    def coverage_check(bikeNo_dict, boundCount=2) -> list:
+    def coverage_check(bikeNo_dict, boundCount=2, precision=6) -> list:
         """
 
+        :param precision:
         :param boundCount:
         :param bikeNo_dict:
         :return: a location list contains bike loc whose detectedCount is less than boundCount
@@ -364,7 +371,8 @@ class TangleScrapper(object):
                 # detected more than once ,covered,next
                 continue
             else:
-                location = [float(bike_scan_data[0]), float(bike_scan_data[1])]  # convert str float
+                location = [round(float(bike_scan_data[0]), precision),
+                            round(float(bike_scan_data[1]), precision)]  # convert str float
 
                 loc_list.append(location)  # the point loc out
 
@@ -399,7 +407,7 @@ class TangleScrapper(object):
             print('--------------------------------')
         return allCounter
 
-    def inRange_pruner(self, bikeNo_dict: dict) -> None:
+    def inRange_prune(self, bikeNo_dict: dict) -> None:
         """
 
         :param bikeNo_dict:
