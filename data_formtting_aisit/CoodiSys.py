@@ -45,7 +45,7 @@ IG_1 = [120.687941, 27.927006, 120.696267, 27.931557]
 IG_2 = [120.686324, 27.922987, 120.691174, 27.928371]
 COLONY_AREA = [120.692472, 27.921593, 120.697504, 27.92548]  # a place where a lot of bikes are stored
 
-IGNORE_AREA = [IG_1, IG_2, COLONY_AREA]
+IGNORE_AREA = [IG_1, IG_2]
 
 
 def check_in_polygon(point: list, polygon_node_list: list) -> bool:
@@ -186,11 +186,12 @@ class TangleScrapper(object):
         print(f'IGNORE_AREA: {self.ignore_loc_list}')
         pass
 
-    def rectangle_slice(self, precision: int = 6) -> list:
+    def rectangle_slice(self, precision: int = 6, REVERSE=False, SHAFFULL=False) -> list:
         """
         attention: This function will not function properly when called with a line_liked tangle,demanding img improvements
         BOUND_LOCATION: defined in the other docs
 
+        :param REVERSE:
         :param precision:
         :return: node_list containing point within the rectangle defined by two conner
 
@@ -217,13 +218,16 @@ class TangleScrapper(object):
                 tempNode[0] = round(lngRange[i], precision)  # x
                 tempNode[1] = round(latRange[j], precision)  # y
                 node_list.append(tempNode.copy())
+        if REVERSE:
+            node_list.reverse()
+        if SHAFFULL:
+            random.shuffle(node_list)
         return node_list
 
     def tree_slice(self, phoneBook_path, usingMethod: int = 1, return_bike_info: bool = False,
-                   logON=True, SEARCH_ALL=True, ignore_loc_list=[]):
+                   logON=True, SEARCH_ALL=True):
         """
         in book out bike_info and points Scanned
-        :param ignore_loc_list:
         :param SEARCH_ALL:
         :param logON:
         :param phoneBook_path:
@@ -249,7 +253,7 @@ class TangleScrapper(object):
             # data_formatting = ['lng', 'lat', 'detectedBikes']
             loc_precision = 6
             root_points = []
-            init_points = self.rectangle_slice(precision=loc_precision)
+            init_points = self.rectangle_slice(precision=loc_precision, REVERSE=True)
 
             temp_list = []  # to store the point's serial which is not empty
             print(f'scan init points at {init_time}')
@@ -306,20 +310,22 @@ class TangleScrapper(object):
                 random.shuffle(search_stack)
 
                 stack_push_counter = 0
-                min_increment = 5
+                min_increment = 1
 
                 while len(search_stack) > 0:  # means there may be un scanned points
 
-                    last_stack = search_stack
                     stack_push_counter += 1  # push
-                    covered_points = []
-                    for i, point in enumerate(search_stack):
+                    scanned_points = []
+                    for i, point in enumerate(search_stack):  # deal with the stack
 
                         if point not in self.coverage_check(bikeNo_dict, boundCount=min_detectedCount):
                             # meaning that the bike on spot is now detected more or equal than min_detectedCount
-                            covered_points.append(i)
+
                             print(f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} SKIP')
                             continue
+                        else:
+                            scanned_points.append(point)
+
                         token = Book.loop_token()
                         point_viewed_bikes = getBikes_reformed(point, token, INSERT_TIMESTAMP=True)
                         self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
@@ -331,13 +337,15 @@ class TangleScrapper(object):
                             f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
                             f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
 
-                    self.bike_count_details(bikeNo_dict)
+                    self.bike_count_details(bikeNo_dict, statistics_list_len=30)
 
                     if search_stack is last_stack or abs(len(last_stack) - len(search_stack)) < min_increment:
-                        # meaning no new bike was found
+                        # meaning no new bike was found or
                         break
+                    last_stack = search_stack
+                    search_stack = self.coverage_check(bikeNo_dict, boundCount=min_detectedCount)
 
-                    init_points.extend(search_stack)
+                    init_points.extend(scanned_points)
                     time.sleep(3)
 
             print(f'Extracted point list length: {len(init_points)}')

@@ -132,7 +132,7 @@ class BikeDataShaders:
 
         plt.figure(dpi=200)
         plt.imshow(self.bgImg, extent=self.extent_format(BOUND_LOCATION))
-
+        plt.xticks(rotaion=-30)
         plt.title('SCANNED BIKES', fontweight="bold")
         plt.suptitle(f'{len(bikeNo_dict)} BIKES')
 
@@ -215,7 +215,8 @@ class BikeDataShaders:
             :param points_list:
             :return:
             """
-            xList, yList = [], []
+            xList = []
+            yList = []
             for point in points_list:
                 xList.append(point[0])
                 yList.append(point[1])
@@ -229,8 +230,10 @@ class BikeDataShaders:
         plt.title('SCANNED POINTS', fontweight="bold")
         plt.suptitle(f'{len(points)} points')
 
-        plt.scatter(lng_list, lat_list, marker='o', s=200, alpha=0.16, c='r')
+        plt.hot()
+        plt.scatter(lng_list, lat_list, marker='o', s=350, alpha=0.16, cmap='hot')
         plt.xlabel('lng'), plt.ylabel('lat')
+        plt.xticks(rotaion=-30)
         plt.tight_layout()
 
         # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
@@ -274,7 +277,7 @@ if __name__ == "__main__":
     manager.update_all_token()
     pusher = push_helper.WxPusher_comp()
 
-    crapper = TangleScrapper(stepLen=0.0017)
+    crapper = TangleScrapper(stepLen=0.00146)
     shader = BikeDataShaders()
     # shader.AREA_divide_img(INVESTIGATE_AREA)
 
