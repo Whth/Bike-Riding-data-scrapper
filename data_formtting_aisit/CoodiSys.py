@@ -43,9 +43,9 @@ AREA_PARK_LOC = [NORTHERN_SCH_GATE, SOUTHERN_SCH_GATE, DE_AREA_GATE, C_AREA_GATE
 
 IG_1 = [120.687941, 27.927006, 120.696267, 27.931557]
 IG_2 = [120.686324, 27.922987, 120.691174, 27.928371]
-COLONY = [120.692472, 27.921593, 120.697504, 27.92548]  # a place where a lot of bikes are stored
+COLONY_AREA = [120.692472, 27.921593, 120.697504, 27.92548]  # a place where a lot of bikes are stored
 
-IGNORE_AREA = [IG_1, IG_2, COLONY]
+IGNORE_AREA = [IG_1, IG_2, COLONY_AREA]
 
 
 def check_in_polygon(point: list, polygon_node_list: list) -> bool:
@@ -220,9 +220,10 @@ class TangleScrapper(object):
         return node_list
 
     def tree_slice(self, phoneBook_path, usingMethod: int = 1, return_bike_info: bool = False,
-                   logON=True, SEARCH_ALL=True):
+                   logON=True, SEARCH_ALL=True, ignore_loc_list=[]):
         """
-        in book out bike_info and points Scand
+        in book out bike_info and points Scanned
+        :param ignore_loc_list:
         :param SEARCH_ALL:
         :param logON:
         :param phoneBook_path:
@@ -264,15 +265,13 @@ class TangleScrapper(object):
 
                 if bikesCount > 0:  # for point that is surrounded by multiple bikes
 
-                    randomBikeSerial = random.randint(0, bikesCount - 1)  # select a random bike
-
-                    a_random_bike: dict = point_viewed_bikes[
-                        randomBikeSerial]  # random get a bike from the requests result
+                    a_random_bike: dict = self.bike_selector(point_viewed_bikes,
+                                                             selectMode=2)  # random get a bike from the requests result
                     location = [round(float(a_random_bike['lng']), loc_precision),
                                 round(float(a_random_bike['lat']), loc_precision)]
 
                     if logON:
-                        print(f'chose [{randomBikeSerial}] {location}')
+                        print(f'chose bike that sits {location}')
                     if check_point_in_tangle(location, self.loc_list) and location not in root_points:
                         # preventing same location and external location
                         root_points.append(location)  # primitive layer
@@ -313,39 +312,37 @@ class TangleScrapper(object):
 
                     last_stack = search_stack
                     stack_push_counter += 1  # push
+                    covered_points = []
                     for i, point in enumerate(search_stack):
+
+                        if point not in self.coverage_check(bikeNo_dict, boundCount=min_detectedCount):
+                            # meaning that the bike on spot is now detected more or equal than min_detectedCount
+                            covered_points.append(i)
+                            print(f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} SKIP')
+                            continue
                         token = Book.loop_token()
                         point_viewed_bikes = getBikes_reformed(point, token, INSERT_TIMESTAMP=True)
-
-                        print(
-                            f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
-                            f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
                         self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
 
                         if virtual_bound:
                             self.inRange_prune(bikeNo_dict)  # del external bikes
 
+                        print(
+                            f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
+                            f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
+
                     self.bike_count_details(bikeNo_dict)
 
-                    search_stack = []
-                    search_stack = self.coverage_check(bikeNo_dict, boundCount=min_detectedCount)
-                    search_stack = self.del_ignore_points(search_stack)
-                    if search_stack is last_stack:
-                        # meaning no bike was found
-
+                    if search_stack is last_stack or abs(len(last_stack) - len(search_stack)) < min_increment:
+                        # meaning no new bike was found
                         break
-                    else:
-                        random.shuffle(search_stack)
 
-                    if abs(len(last_stack) - len(search_stack)) < min_increment:
-                        break
                     init_points.extend(search_stack)
                     time.sleep(3)
 
-            self.bike_count_details(bikeNo_dict)
-
-            print(f'Extracted list length: {len(init_points)}')
+            print(f'Extracted point list length: {len(init_points)}')
             print(f'Extracted bike number: {len(bikeNo_dict)}')
+            print(f'Consumed time: {datetime.datetime.now() - init_time}')
 
             if return_bike_info:
                 return init_points, bikeNo_dict
@@ -425,6 +422,39 @@ class TangleScrapper(object):
             print('--------------------------------')
         return allCounter
 
+    @staticmethod
+    def bike_selector(raw_bike_dicts: list, selectMode: int = 1) -> dict:
+        """
+
+        :param raw_bike_dicts:
+        :param selectMode:
+        :return:
+        """
+        selectedBike = {}
+        if selectMode == 1:
+            """
+            select the a random bike
+            """
+            randomBikeSerial = random.randint(0, len(raw_bike_dicts) - 1)  # select a random bike
+            return raw_bike_dicts[randomBikeSerial]
+        elif selectMode == 2:
+
+            """
+            select bike that the longest distance between the selected
+            """
+
+            max_distance = 0.0
+            serial = None
+            for i, bike in enumerate(raw_bike_dicts):
+                if float(bike.get('distance')) > max_distance:
+                    max_distance = bike.get('distance')
+                    serial = i
+            if serial:
+                return raw_bike_dicts[serial]
+            else:
+                warnings.warn('empty serial')
+                return {}
+
     def inRange_prune(self, bikeNo_dict: dict) -> None:
         """
 
@@ -473,11 +503,13 @@ class DataSorter(object):
         self.SOUTHERN_SCH_dict = {}
         self.NORTHERN_SCH_dict = {}
         self.MALL_AREA_dict = {}
-        self.WANDERING_bike_sum = 0
+        self.COLONY_AREA_dict = {}
 
-        self.HALL_bike_sum = len(bikeNo_dict)
-        self.bikeNo_dict = bikeNo_dict
-        self.timeStamp = timeStamp
+        self.WANDERING_bike_sum: int = 0
+
+        self.HALL_bike_sum: int = len(bikeNo_dict)
+        self.bikeNo_dict: dict = bikeNo_dict
+        self.timeStamp: str = timeStamp
 
         self.ALL_AREA_RESORT()
 
@@ -512,8 +544,10 @@ class DataSorter(object):
         self.DE_AREA_dict = self.AREA_resort(DE_AREA)
         self.C_AREA_dict = self.AREA_resort(C_AREA)
         self.MALL_AREA_dict = self.AREA_resort(MALL_AREA)
+        self.COLONY_AREA_dict = self.AREA_resort(COLONY_AREA)
         self.WANDERING_bike_sum = self.HALL_bike_sum - len(self.C_AREA_dict) - len(self.DE_AREA_dict) - len(
-            self.SOUTHERN_SCH_dict) - len(self.NORTHERN_SCH_dict) - len(self.MALL_AREA_dict)
+            self.SOUTHERN_SCH_dict) - len(self.NORTHERN_SCH_dict) - len(self.MALL_AREA_dict) - len(
+            self.COLONY_AREA_dict)
 
         self.dataset = {'HALL_bike_sum': self.HALL_bike_sum,
                         'WANDERING_bike_sum': self.WANDERING_bike_sum,
@@ -522,6 +556,7 @@ class DataSorter(object):
                         'DE_AREA': len(self.DE_AREA_dict),
                         'C_AREA': len(self.C_AREA_dict),
                         'MALL_AREA': len(self.MALL_AREA_dict),
+                        'COLONY_AREA': len(self.COLONY_AREA_dict),
                         'timeStamp': self.timeStamp}
 
         if infoON:
