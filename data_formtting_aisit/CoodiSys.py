@@ -29,14 +29,17 @@ NORTHERN_SCH_GATE = [120.704141, 27.924129]
 SOUTHERN_SCH = [BOUND_LOCATION[0], BOUND_LOCATION[1], 120.701335, 27.920465]
 SOUTHERN_SCH_GATE = [120.700536, 27.917799]
 
-DE_AREA = [120.706223, 27.91666, 120.708851, 27.919135]
+DE_AREA = [120.705654, 27.916654, 120.708851, 27.919135]
 DE_AREA_GATE = [120.70884, 27.918759]
 
-C_AREA = [120.701227, 27.922759, BOUND_LOCATION[2], NORTHERN_SCH[1]]
+C_AREA = [120.7056, DE_AREA[3], BOUND_LOCATION[2], NORTHERN_SCH[1]]
 C_AREA_GATE = [120.706458, 27.921396]
 
 MALL_AREA = [SOUTHERN_SCH[2], BOUND_LOCATION[1], BOUND_LOCATION[2], DE_AREA[1]]
 MALL_AREA_GATE = [120.706158, 27.916794]
+
+INVESTIGATE_AREA = [NORTHERN_SCH, SOUTHERN_SCH, DE_AREA, C_AREA, MALL_AREA]
+AREA_PARK_LOC = [NORTHERN_SCH_GATE, SOUTHERN_SCH_GATE, DE_AREA_GATE, C_AREA_GATE, MALL_AREA_GATE]
 
 IG_1 = [120.687941, 27.927006, 120.696267, 27.931557]
 IG_2 = [120.686324, 27.922987, 120.691174, 27.928371]
@@ -103,31 +106,32 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
 
     bikeData_return = None
     max_retries = 3
-
-    try:
-        for i in range(max_retries):  # max retries 3 times
-
+    for i in range(max_retries):  # max retries 3 times
+        try:
             with requests.post(get_bike_url, headers=req_misc.a_random_header(), data=json.dumps(req_load),
-                               timeout=7) as echo:
+                               timeout=8) as echo:
                 bikeData_return = echo
-            if bikeData_return:
-                break
+                if bikeData_return.status_code == 200:
+                    break
+                else:
+                    print('sleep a while')
+                    time.sleep(random.random())  # wait_time
+        except TimeoutError:
+
+            if requests.get('https://www.baidu.com/').status_code != 200:
+                print('bad request')
+                warnings.warn('MAY HAVE CORRUPTION')
+                raise ConnectionError
             else:
-                print('sleep a while')
-                time.sleep(random.random())  # wait_time
-    except:
-        if not requests.get('https://www.baidu.com/'):
-            print('bad request')
-            warnings.warn('MAY HAVE CORRUPTION')
-        else:
-            print(f'HOlD 20 seconds')
-            time.sleep(20)
-            if Hold_retry:
-                return getBikes_reformed(point_coordinates=point_coordinates, token=token,
-                                         INSERT_TIMESTAMP=INSERT_TIMESTAMP, USE_NEW_VERSION=USE_NEW_VERSION,
-                                         RETURN_DENSITY=RETURN_DENSITY, BAD_CHECK=BAD_CHECK)
-
-
+                print(f'HOlD 20 seconds')
+                time.sleep(20)
+                if Hold_retry:
+                    with requests.post(get_bike_url, headers=req_misc.a_random_header(), data=json.dumps(req_load),
+                                       timeout=7) as echo:
+                        bikeData_return = echo
+                        if bikeData_return.status_code != 200:
+                            print('blockage error')
+                            raise ConnectionError
 
     Bike_raw_data_dict = json.loads(bikeData_return.text)  # return type is dict
 
@@ -234,6 +238,7 @@ class TangleScrapper(object):
             this method will detect util every bike has at least 2 detected
 
             """
+            min_detectedCount = 2
 
             init_time = datetime.datetime.now()
 
@@ -281,7 +286,7 @@ class TangleScrapper(object):
             init_points = temp_list
 
             expand_list = []
-            for point in self.coverage_check(bikeNo_dict):  # get low coverage location
+            for point in self.coverage_check(bikeNo_dict, boundCount=min_detectedCount):  # get low coverage location
                 if check_point_in_tangle(point, self.loc_list):
                     expand_list.append(point)
 
@@ -298,7 +303,8 @@ class TangleScrapper(object):
                 search_stack = []
                 last_stack = []
                 search_stack = root_points  # init search_stack with root_points
-                min_detectedCount = 2
+
+                random.shuffle(search_stack)
 
                 stack_push_counter = 0
                 min_increment = 5
