@@ -1,6 +1,7 @@
 import copy
 import datetime
 import os
+import random
 import time
 import warnings
 
@@ -130,15 +131,15 @@ class BikeDataShaders:
 
         lng_list, lat_list = BikeNo_dict_to_XY(bikeNo_dict=self.bikeNo_dict)
 
-        plt.figure(dpi=200)
+        plt.figure(dpi=280)
         plt.imshow(self.bgImg, extent=self.extent_format(BOUND_LOCATION))
-        plt.xticks(rotaion=-30)
+
         plt.title('SCANNED BIKES', fontweight="bold")
         plt.suptitle(f'{len(bikeNo_dict)} BIKES')
 
         plt.scatter(lng_list, lat_list, marker='.', s=3, alpha=0.8, c='r')
         plt.xlabel('lng'), plt.ylabel('lat')
-        plt.tight_layout()
+        plt.tick_params(axis='both', labelsize=6)
 
         if SAVE_IMG_PATH:
             plt.savefig(SAVE_IMG_PATH)
@@ -190,13 +191,14 @@ class BikeDataShaders:
         """
 
         print(f'Drawing {location}')
-        plt.figure(dpi=200)
+        plt.figure(dpi=350)
         plt.suptitle(f'{location}')
         plt.xlabel('time')
         plt.ylabel('bikeCount')
 
         plt.xticks()
 
+        plt.tick_params(axis='both', labelsize=4)
         plt.tight_layout()
 
         pass
@@ -224,16 +226,16 @@ class BikeDataShaders:
 
         lng_list, lat_list = points_to_xyList(points_list=points)
 
-        plt.figure(dpi=200)
+        plt.figure(dpi=280)
         plt.imshow(self.bgImg, extent=self.extent_format(BOUND_LOCATION))  # insert AREA_divide_img
 
         plt.title('SCANNED POINTS', fontweight="bold")
         plt.suptitle(f'{len(points)} points')
 
-        plt.hot()
-        plt.scatter(lng_list, lat_list, marker='o', s=350, alpha=0.16, cmap='hot')
+        plt.scatter(lng_list, lat_list, marker='o', s=350, alpha=0.16, c='r')
         plt.xlabel('lng'), plt.ylabel('lat')
-        plt.xticks(rotaion=-30)
+
+        plt.tick_params(axis='both', labelsize=6)
         plt.tight_layout()
 
         # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
@@ -272,6 +274,14 @@ def dumpBike_data(bike_data: dict, file_dir: str) -> bool:
     return True
 
 
+def Countdown(seconds):
+    while seconds > 0:
+        seconds -= 1
+        time.sleep(1)
+        print(f'\rREMAINING {seconds}s to reACTIVATE', end='')
+    return
+
+
 if __name__ == "__main__":
     manager = PhoneBook_Manager(book_path=book_Path)
     manager.update_all_token()
@@ -283,8 +293,15 @@ if __name__ == "__main__":
 
     while True:
         try:
-            scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False,
-                                                          SEARCH_ALL=True)
+            try:
+                scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True,
+                                                              logON=False,
+                                                              SEARCH_ALL=True)
+            except:
+                print("Exception")
+                Countdown(60 + 60 * random.random())
+                continue
+
             timeStamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')
             sorter = DataSorter(bikes_dict, timeStamp=timeStamp)
             pusher.pushInfo(len(bikes_dict), len(scannedPoint), sorter.dataset)
@@ -294,14 +311,14 @@ if __name__ == "__main__":
             timeFolder = folderHelper.open_CurTime_folder()
             pic_folder = timeFolder + 'images/'
             basic_name = timeStamp + '.png'
-            print(f"try save at {pic_folder}")
 
             shader.scanned_points(scannedPoint, SAVE_IMG_PATH=pic_folder + 'ScannedPoints-' + basic_name)
             shader.distributeHotMap(bikes_dict, SAVE_IMG_PATH=pic_folder + 'BikeDistributedHotMap-' + basic_name)
 
             dumpBike_data(bikes_dict, folderHelper.open_CurTime_folder())
-
-            time.sleep(180)
+            print(f"try save at {pic_folder}")
+            print('SLEEPING')
+            Countdown(120 + 60 * random.random())
         except KeyboardInterrupt:
 
             print(f'\n\nEND')

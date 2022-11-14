@@ -25,9 +25,11 @@ BOUND_LOCATION = [120.691208, 27.913032, 120.709791, 27.931309]
 
 NORTHERN_SCH = [120.701227, 27.922759, BOUND_LOCATION[2], BOUND_LOCATION[3]]
 NORTHERN_SCH_GATE = [120.704141, 27.924129]
+NORTHERN_SCH_GATE_AREA = [120.703043, NORTHERN_SCH[1], 120.705006, 27.924429]
 
 SOUTHERN_SCH = [BOUND_LOCATION[0], BOUND_LOCATION[1], 120.701335, 27.920465]
 SOUTHERN_SCH_GATE = [120.700536, 27.917799]
+SOUTHERN_SCH_GATE_AREA = [120.699958, 27.916437, SOUTHERN_SCH[2], 27.918875]
 
 DE_AREA = [120.705654, 27.916654, 120.708851, 27.919135]
 DE_AREA_GATE = [120.70884, 27.918759]
@@ -37,13 +39,16 @@ C_AREA_GATE = [120.706458, 27.921396]
 
 MALL_AREA = [SOUTHERN_SCH[2], BOUND_LOCATION[1], BOUND_LOCATION[2], DE_AREA[1]]
 MALL_AREA_GATE = [120.706158, 27.916794]
+COLONY_AREA = [120.692472, 27.921593, 120.697504, 27.92548]  # a place where a lot of bikes are stored
 
-INVESTIGATE_AREA = [NORTHERN_SCH, SOUTHERN_SCH, DE_AREA, C_AREA, MALL_AREA]
+INVESTIGATE_AREA = [NORTHERN_SCH, NORTHERN_SCH_GATE_AREA,
+                    SOUTHERN_SCH, SOUTHERN_SCH_GATE_AREA,
+                    DE_AREA, C_AREA,
+                    COLONY_AREA, MALL_AREA]
 AREA_PARK_LOC = [NORTHERN_SCH_GATE, SOUTHERN_SCH_GATE, DE_AREA_GATE, C_AREA_GATE, MALL_AREA_GATE]
 
 IG_1 = [120.687941, 27.927006, 120.696267, 27.931557]
 IG_2 = [120.686324, 27.922987, 120.691174, 27.928371]
-COLONY_AREA = [120.692472, 27.921593, 120.697504, 27.92548]  # a place where a lot of bikes are stored
 
 IGNORE_AREA = [IG_1, IG_2]
 
@@ -244,6 +249,8 @@ class TangleScrapper(object):
 
             """
             min_detectedCount = 2
+            HALL_SCAN_INTERVAL = 1
+            last_time = time.time()
 
             init_time = datetime.datetime.now()
 
@@ -258,14 +265,17 @@ class TangleScrapper(object):
             temp_list = []  # to store the point's serial which is not empty
             print(f'scan init points at {init_time}')
             for serial, init_point in enumerate(init_points):
+                token = Book.loop_token()
+                if time.time() - last_time < HALL_SCAN_INTERVAL:  # to control HALL scan frequency
+                    time.sleep(HALL_SCAN_INTERVAL)
 
-                point_viewed_bikes = getBikes_reformed(init_point, Book.loop_token(), INSERT_TIMESTAMP=True)  # requests
+                point_viewed_bikes = getBikes_reformed(init_point, token, INSERT_TIMESTAMP=True)  # requests
                 bikesCount = len(point_viewed_bikes)
 
                 print(f'[{serial + 1}/{len(init_points)}] [{bikesCount}] scanned '
                       f'{init_points[serial]}'
                       f'TimeConsumed: {datetime.datetime.now() - init_time} '
-                      f'AllDetectedBikeCount: {len(bikeNo_dict)}')
+                      f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token}')
 
                 if bikesCount > 0:  # for point that is surrounded by multiple bikes
 
@@ -310,7 +320,7 @@ class TangleScrapper(object):
                 random.shuffle(search_stack)
 
                 stack_push_counter = 0
-                min_increment = 1
+                min_increment = 3
 
                 while len(search_stack) > 0:  # means there may be un scanned points
 
@@ -327,6 +337,10 @@ class TangleScrapper(object):
                             scanned_points.append(point)
 
                         token = Book.loop_token()
+
+                        if time.time() - last_time < HALL_SCAN_INTERVAL:  # to control HALL scan frequency
+                            time.sleep(HALL_SCAN_INTERVAL)
+
                         point_viewed_bikes = getBikes_reformed(point, token, INSERT_TIMESTAMP=True)
                         self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
 
@@ -335,6 +349,7 @@ class TangleScrapper(object):
 
                         print(
                             f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
+                            f'TimeConsumed: {datetime.datetime.now() - init_time} '
                             f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
 
                     self.bike_count_details(bikeNo_dict, statistics_list_len=30)
@@ -348,9 +363,11 @@ class TangleScrapper(object):
                     init_points.extend(scanned_points)
                     time.sleep(3)
 
+            consumedTime = datetime.datetime.now() - init_time
             print(f'Extracted point list length: {len(init_points)}')
             print(f'Extracted bike number: {len(bikeNo_dict)}')
-            print(f'Consumed time: {datetime.datetime.now() - init_time}')
+            print(f'Consumed time: {consumedTime}')
+            print(f'Scan [{len(init_points) / consumedTime.seconds}] pt/s')
 
             if return_bike_info:
                 return init_points, bikeNo_dict
@@ -499,7 +516,7 @@ class TangleScrapper(object):
 
 class DataSorter(object):
 
-    def __init__(self, bikeNo_dict: dict, timeStamp: str):
+    def __init__(self, bikeNo_dict: dict, timeStamp: str, ):
         """
 
         :param bikeNo_dict:
@@ -509,7 +526,11 @@ class DataSorter(object):
         self.C_AREA_dict = {}
         self.DE_AREA_dict = {}
         self.SOUTHERN_SCH_dict = {}
+        self.SOUTHERN_SCH_GATE_dict = {}
+
         self.NORTHERN_SCH_dict = {}
+        self.NORTHERN_SCH_GATE_dict = {}
+
         self.MALL_AREA_dict = {}
         self.COLONY_AREA_dict = {}
 
@@ -548,11 +569,14 @@ class DataSorter(object):
         print(f'ALL_AREA_RESORT')
         print(f'----------------------------------------------------------------')
         self.SOUTHERN_SCH_dict = self.AREA_resort(SOUTHERN_SCH)
+        self.SOUTHERN_SCH_GATE_dict = self.AREA_resort(SOUTHERN_SCH_GATE_AREA)
         self.NORTHERN_SCH_dict = self.AREA_resort(NORTHERN_SCH)
+        self.NORTHERN_SCH_GATE_dict = self.AREA_resort(NORTHERN_SCH_GATE_AREA)
         self.DE_AREA_dict = self.AREA_resort(DE_AREA)
         self.C_AREA_dict = self.AREA_resort(C_AREA)
         self.MALL_AREA_dict = self.AREA_resort(MALL_AREA)
         self.COLONY_AREA_dict = self.AREA_resort(COLONY_AREA)
+
         self.WANDERING_bike_sum = self.HALL_bike_sum - len(self.C_AREA_dict) - len(self.DE_AREA_dict) - len(
             self.SOUTHERN_SCH_dict) - len(self.NORTHERN_SCH_dict) - len(self.MALL_AREA_dict) - len(
             self.COLONY_AREA_dict)
@@ -560,7 +584,9 @@ class DataSorter(object):
         self.dataset = {'HALL_bike_sum': self.HALL_bike_sum,
                         'WANDERING_bike_sum': self.WANDERING_bike_sum,
                         'SOUTHERN_SCH': len(self.SOUTHERN_SCH_dict),
+                        'SOUTHERN_SCH_GATE_AREA': len(self.SOUTHERN_SCH_GATE_dict),
                         'NORTHERN_SCH': len(self.NORTHERN_SCH_dict),
+                        'NORTHERN_SCH_GATE_AREA': len(self.NORTHERN_SCH_GATE_dict),
                         'DE_AREA': len(self.DE_AREA_dict),
                         'C_AREA': len(self.C_AREA_dict),
                         'MALL_AREA': len(self.MALL_AREA_dict),
