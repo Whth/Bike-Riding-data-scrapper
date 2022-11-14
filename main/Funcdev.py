@@ -1,6 +1,7 @@
 import copy
 import datetime
 import os
+import random
 import time
 import warnings
 
@@ -132,7 +133,7 @@ class BikeDataShaders:
 
         plt.figure(dpi=200)
         plt.imshow(self.bgImg, extent=self.extent_format(BOUND_LOCATION))
-        plt.xticks(rotaion=-30)
+
         plt.title('SCANNED BIKES', fontweight="bold")
         plt.suptitle(f'{len(bikeNo_dict)} BIKES')
 
@@ -231,9 +232,10 @@ class BikeDataShaders:
         plt.suptitle(f'{len(points)} points')
 
         plt.hot()
-        plt.scatter(lng_list, lat_list, marker='o', s=350, alpha=0.16, cmap='hot')
+        plt.scatter(lng_list, lat_list, marker='o', s=350, alpha=0.16, c='r')
         plt.xlabel('lng'), plt.ylabel('lat')
-        plt.xticks(rotaion=-30)
+
+        plt.axis('tight')
         plt.tight_layout()
 
         # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
@@ -283,8 +285,17 @@ if __name__ == "__main__":
 
     while True:
         try:
-            scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False,
+            try:
+                scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True, logON=False,
                                                           SEARCH_ALL=True)
+            except:
+                time.sleep(60+60*random.random())
+                try:
+                    scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True,
+                                                                  logON=False,
+                                                                  SEARCH_ALL=True)
+                except:
+                    continue
             timeStamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')
             sorter = DataSorter(bikes_dict, timeStamp=timeStamp)
             pusher.pushInfo(len(bikes_dict), len(scannedPoint), sorter.dataset)

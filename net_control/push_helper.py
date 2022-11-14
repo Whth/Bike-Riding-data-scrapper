@@ -9,9 +9,9 @@ from folderHelper import open_CurTime_folder, bikeData_log_file_name
 class WxPusher_comp(WxPusher):
     def __init__(self):
         self.TOKEN = ''
-        self.UIDS = ['UID_zKFzOuemC8WJkw1vqSIHebgtBO9Q'
-            ,
-                     ]
+        self.UIDS = ['UID_zKFzOuemC8WJkw1vqSIHebgtBO9Q',
+                     'UID_tpC8Zang3uYVvxvHAf9J2U3peM04',
+                     'UID_HJsIJWL7GvYgoyIYsvxQM4APwwtd']
         self.TOPIC_IDS = [
             '7619',
         ]
