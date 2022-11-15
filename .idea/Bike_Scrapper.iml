@@ -10,6 +10,7 @@
     </content>
     <orderEntry type="jdk" jdkName="Python 3.10 (Bike_Scrapper)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Genetic-Algorithm-bikeCalc" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_FOLDERS">

@@ -111,7 +111,7 @@ class BikeDataShaders:
         if scanned_points:
             self.scanned = scanned_points
 
-    def distributeHotMap(self, bikeNo_dict: dict, SAVE_IMG_PATH=''):
+    def distributeHotMap(self, bikeNo_dict: dict, timeStamp, SAVE_IMG_PATH=''):
         """
         bike distributeHotMap
         :return:
@@ -131,20 +131,63 @@ class BikeDataShaders:
 
         lng_list, lat_list = BikeNo_dict_to_XY(bikeNo_dict=self.bikeNo_dict)
 
-        plt.figure(dpi=280)
+        plt.figure(dpi=200)
         plt.imshow(self.bgImg, extent=self.extent_format(BOUND_LOCATION))
 
         plt.title('SCANNED BIKES', fontweight="bold")
-        plt.suptitle(f'{len(bikeNo_dict)} BIKES')
+        plt.suptitle(f'{timeStamp}||{len(bikeNo_dict)} BIKES')
 
         plt.scatter(lng_list, lat_list, marker='.', s=3, alpha=0.8, c='r')
         plt.xlabel('lng'), plt.ylabel('lat')
-        plt.tick_params(axis='both', labelsize=6)
 
+        plt.ticklabel_format(style='scientific')
         if SAVE_IMG_PATH:
+            print(f'Save distributeHotMap img at {SAVE_IMG_PATH}')
             plt.savefig(SAVE_IMG_PATH)
         plt.show()
         pass
+
+    def scanned_points(self, points, timeStamp, SAVE_IMG_PATH=''):
+        """
+
+        :param SAVE_IMG_PATH:
+        :param points:
+        :return:
+        """
+
+        def points_to_xyList(points_list) -> tuple:
+            """
+            x :lng ,y :lat
+            :param points_list:
+            :return:
+            """
+            xList = []
+            yList = []
+            for point in points_list:
+                xList.append(point[0])
+                yList.append(point[1])
+            return xList, yList
+
+        lng_list, lat_list = points_to_xyList(points_list=points)
+
+        plt.figure(dpi=200)
+        plt.imshow(self.bgImg, extent=self.extent_format(BOUND_LOCATION))  # insert AREA_divide_img
+
+        plt.title('SCANNED POINTS', fontweight="bold")
+        plt.suptitle(f'{timeStamp}||{len(points)} points')
+
+        plt.scatter(lng_list, lat_list, marker='o', s=350, alpha=0.16, c='r')
+        plt.xlabel('lng'), plt.ylabel('lat')
+
+        plt.ticklabel_format(style='scientific')
+        # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
+
+        if SAVE_IMG_PATH:
+            print(f'Save scanned_points img at {SAVE_IMG_PATH}')
+            plt.savefig(SAVE_IMG_PATH)
+        plt.show()
+
+        return
 
     def AREA_divide_img(self, AREA_list: list):
         """
@@ -199,52 +242,8 @@ class BikeDataShaders:
         plt.xticks()
 
         plt.tick_params(axis='both', labelsize=4)
-        plt.tight_layout()
 
         pass
-
-    def scanned_points(self, points, SAVE_IMG_PATH=''):
-        """
-
-        :param SAVE_IMG_PATH:
-        :param points:
-        :return:
-        """
-
-        def points_to_xyList(points_list) -> tuple:
-            """
-            x :lng ,y :lat
-            :param points_list:
-            :return:
-            """
-            xList = []
-            yList = []
-            for point in points_list:
-                xList.append(point[0])
-                yList.append(point[1])
-            return xList, yList
-
-        lng_list, lat_list = points_to_xyList(points_list=points)
-
-        plt.figure(dpi=280)
-        plt.imshow(self.bgImg, extent=self.extent_format(BOUND_LOCATION))  # insert AREA_divide_img
-
-        plt.title('SCANNED POINTS', fontweight="bold")
-        plt.suptitle(f'{len(points)} points')
-
-        plt.scatter(lng_list, lat_list, marker='o', s=350, alpha=0.16, c='r')
-        plt.xlabel('lng'), plt.ylabel('lat')
-
-        plt.tick_params(axis='both', labelsize=6)
-        plt.tight_layout()
-
-        # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
-
-        if SAVE_IMG_PATH:
-            plt.savefig(SAVE_IMG_PATH)
-        plt.show()
-
-        return
 
     @staticmethod
     def extent_format(loc_list):
@@ -260,16 +259,17 @@ def dumpBike_data(bike_data: dict, file_dir: str) -> bool:
     :param bike_data:
     :return: True if success
     """
+
     path = file_dir + folderHelper.bikeData_file_name
     if not os.path.exists(file_dir):
         warnings.warn('no such file or directory')
         return False
-    head = ''
+
     with open(path, mode='a+') as f:
         for bike in bike_data.keys():
             dataBody: list = bikes_dict.get(bike)
-            line = f'{head}{dataBody[2]}\t{bike}\t{dataBody[0]}\t{dataBody[1]}'
-            head = '\n'
+            line = f'{dataBody[2]}\t{bike}\t{dataBody[0]}\t{dataBody[1]}\t\n'
+
             f.write(line)
     return True
 
@@ -284,7 +284,7 @@ def Countdown(seconds):
 
 if __name__ == "__main__":
     manager = PhoneBook_Manager(book_path=book_Path)
-    manager.update_all_token()
+    # manager.update_all_token()
     pusher = push_helper.WxPusher_comp()
 
     crapper = TangleScrapper(stepLen=0.00146)
@@ -304,21 +304,30 @@ if __name__ == "__main__":
 
             timeStamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')
             sorter = DataSorter(bikes_dict, timeStamp=timeStamp)
-            pusher.pushInfo(len(bikes_dict), len(scannedPoint), sorter.dataset)
+            pusher.pushInfo(len(bikes_dict), len(scannedPoint), sorter.bikeCountDataset)
 
             shader.update_dataset(bikes_dict, scannedPoint)
 
             timeFolder = folderHelper.open_CurTime_folder()
             pic_folder = timeFolder + 'images/'
             basic_name = timeStamp + '.png'
-
-            shader.scanned_points(scannedPoint, SAVE_IMG_PATH=pic_folder + 'ScannedPoints-' + basic_name)
-            shader.distributeHotMap(bikes_dict, SAVE_IMG_PATH=pic_folder + 'BikeDistributedHotMap-' + basic_name)
-
+            print(f'dumpDATA at data')
             dumpBike_data(bikes_dict, folderHelper.open_CurTime_folder())
+            print('save img')
+            try:
+                shader.scanned_points(scannedPoint, timeStamp, SAVE_IMG_PATH=pic_folder + 'ScannedPoints-' + basic_name)
+                shader.distributeHotMap(bikes_dict, timeStamp,
+                                        SAVE_IMG_PATH=pic_folder + 'BikeDistributedHotMap-' + basic_name)
+            except:
+                warnings.warn(f'Unable to save img')
+                pass
+
             print(f"try save at {pic_folder}")
             print('SLEEPING')
-            Countdown(120 + 60 * random.random())
+            if datetime.datetime.now().hour > 5:
+                Countdown(120 + 60 * random.random())
+            else:
+                Countdown(1800)
         except KeyboardInterrupt:
 
             print(f'\n\nEND')

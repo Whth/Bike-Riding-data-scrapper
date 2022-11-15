@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Bike_Scrapper.iml" filepath="$PROJECT_DIR$/.idea/Bike_Scrapper.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Genetic-Algorithm-bikeCalc/.idea/Genetic-Algorithm-bikeCalc.iml" filepath="$PROJECT_DIR$/../Genetic-Algorithm-bikeCalc/.idea/Genetic-Algorithm-bikeCalc.iml" />
     </modules>
   </component>
 </project>

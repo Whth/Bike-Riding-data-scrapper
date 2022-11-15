@@ -260,7 +260,7 @@ class TangleScrapper(object):
             # data_formatting = ['lng', 'lat', 'detectedBikes']
             loc_precision = 6
             root_points = []
-            init_points = self.rectangle_slice(precision=loc_precision, REVERSE=True)
+            init_points = self.rectangle_slice(precision=loc_precision, SHAFFULL=True)
 
             temp_list = []  # to store the point's serial which is not empty
             print(f'scan init points at {init_time}')
@@ -367,7 +367,7 @@ class TangleScrapper(object):
             print(f'Extracted point list length: {len(init_points)}')
             print(f'Extracted bike number: {len(bikeNo_dict)}')
             print(f'Consumed time: {consumedTime}')
-            print(f'Scan [{len(init_points) / consumedTime.seconds}] pt/s')
+            print(f'Scan [{(len(init_points) / consumedTime.seconds):.2f}] pt/s')
 
             if return_bike_info:
                 return init_points, bikeNo_dict
@@ -522,7 +522,7 @@ class DataSorter(object):
         :param bikeNo_dict:
         :param timeStamp:
         """
-        self.dataset = {}
+        self.bikeCountDataset = {}
         self.C_AREA_dict = {}
         self.DE_AREA_dict = {}
         self.SOUTHERN_SCH_dict = {}
@@ -581,24 +581,24 @@ class DataSorter(object):
             self.SOUTHERN_SCH_dict) - len(self.NORTHERN_SCH_dict) - len(self.MALL_AREA_dict) - len(
             self.COLONY_AREA_dict)
 
-        self.dataset = {'HALL_bike_sum': self.HALL_bike_sum,
-                        'WANDERING_bike_sum': self.WANDERING_bike_sum,
-                        'SOUTHERN_SCH': len(self.SOUTHERN_SCH_dict),
-                        'SOUTHERN_SCH_GATE_AREA': len(self.SOUTHERN_SCH_GATE_dict),
-                        'NORTHERN_SCH': len(self.NORTHERN_SCH_dict),
-                        'NORTHERN_SCH_GATE_AREA': len(self.NORTHERN_SCH_GATE_dict),
-                        'DE_AREA': len(self.DE_AREA_dict),
-                        'C_AREA': len(self.C_AREA_dict),
-                        'MALL_AREA': len(self.MALL_AREA_dict),
-                        'COLONY_AREA': len(self.COLONY_AREA_dict),
-                        'timeStamp': self.timeStamp}
+        self.bikeCountDataset = {'HALL_bike_sum': self.HALL_bike_sum,
+                                 'WANDERING_bike_sum': self.WANDERING_bike_sum,
+                                 'SOUTHERN_SCH': len(self.SOUTHERN_SCH_dict),
+                                 'SOUTHERN_SCH_GATE_AREA': len(self.SOUTHERN_SCH_GATE_dict),
+                                 'NORTHERN_SCH': len(self.NORTHERN_SCH_dict),
+                                 'NORTHERN_SCH_GATE_AREA': len(self.NORTHERN_SCH_GATE_dict),
+                                 'DE_AREA': len(self.DE_AREA_dict),
+                                 'C_AREA': len(self.C_AREA_dict),
+                                 'MALL_AREA': len(self.MALL_AREA_dict),
+                                 'COLONY_AREA': len(self.COLONY_AREA_dict),
+                                 'timeStamp': self.timeStamp}
 
         if infoON:
-            for key in self.dataset.keys():
-                print(f'{key}: {self.dataset.get(key)}')
+            for key in self.bikeCountDataset.keys():
+                print(f'{key}: {self.bikeCountDataset.get(key)}')
         if SAVE:
             with open(folderHelper.open_CurTime_folder() + bikeData_log_file_name, mode='a') as f:
-                f.write(f'{json.dumps(self.dataset)}\n')
+                f.write(f'{json.dumps(self.bikeCountDataset)}\n')
 
 
 if __name__ == '__main__':
