@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 import folderHelper
 import push_helper
-from CoodiSys import TangleScrapper, BOUND_LOCATION, DataSorter, AREA_PARK_LOC
+from CoodiSys import TangleScrapper, BOUND_LOCATION, DataSorter
 from folderHelper import phoneNumber_file_path as book_Path
 from phoneBookManager import PhoneBook_Manager
 
@@ -138,9 +138,10 @@ class BikeDataShaders:
         plt.suptitle(f'{timeStamp}||{len(bikeNo_dict)} BIKES')
 
         plt.scatter(lng_list, lat_list, marker='.', s=3, alpha=0.8, c='r')
-        plt.xlabel('lng'), plt.ylabel('lat')
+        plt.xlabel('longitude', loc='right'), plt.ylabel('latitude', loc='top')
 
-        plt.ticklabel_format(style='scientific')
+        plt.tick_params(axis='x', labelrotation=-30)
+
         if SAVE_IMG_PATH:
             print(f'Save distributeHotMap img at {SAVE_IMG_PATH}')
             plt.savefig(SAVE_IMG_PATH)
@@ -177,10 +178,9 @@ class BikeDataShaders:
         plt.suptitle(f'{timeStamp}||{len(points)} points')
 
         plt.scatter(lng_list, lat_list, marker='o', s=350, alpha=0.16, c='r')
-        plt.xlabel('lng'), plt.ylabel('lat')
+        plt.xlabel('longitude', loc='right'), plt.ylabel('latitude', loc='top')
 
-        plt.ticklabel_format(style='scientific')
-        # plt.scatter(lng_list, lat_list, s=2000, alpha=0.6)
+        plt.tick_params(axis='x', labelrotation=-30)
 
         if SAVE_IMG_PATH:
             print(f'Save scanned_points img at {SAVE_IMG_PATH}')
@@ -188,62 +188,6 @@ class BikeDataShaders:
         plt.show()
 
         return
-
-    def AREA_divide_img(self, AREA_list: list):
-        """
-
-        :param AREA_list:
-        :return:
-        """
-        fig, ax = plt.figure(dpi=200)
-
-        plt.imshow(self.bgImg, extent=self.extent_format(BOUND_LOCATION))
-
-        def node_list(AREA: list):
-            temp = []
-            temp.append([AREA[0], AREA[1]])
-            temp.append([AREA[0], AREA[3]])
-
-            temp.append([AREA[2], AREA[3]])
-            temp.append([AREA[2], AREA[1]])
-            return temp
-
-        def node_list_to_xy(nodes: list):
-            lng = []
-            lat = []
-            for node in nodes:
-                lng.append(node[0])
-                lat.append(node[1])
-            return lng, lat
-
-        for i in range(len(AREA_list)):
-            AREA = AREA_list[i]
-            park = AREA_PARK_LOC[i]
-            rect = plt.Rectangle(park, width=AREA[2] - AREA[0], height=AREA[3] - AREA[1])
-            ax.add_patch(rect)
-        ax.tight_layout()
-        plt.show()
-
-    def bikeCountLineMap(self, location, bikeUsage_list):
-        """
-
-        :param bikeUsage_list: [count]
-        :param location:
-
-        :return:
-        """
-
-        print(f'Drawing {location}')
-        plt.figure(dpi=350)
-        plt.suptitle(f'{location}')
-        plt.xlabel('time')
-        plt.ylabel('bikeCount')
-
-        plt.xticks()
-
-        plt.tick_params(axis='both', labelsize=4)
-
-        pass
 
     @staticmethod
     def extent_format(loc_list):

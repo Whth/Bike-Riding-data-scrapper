@@ -29,12 +29,49 @@ class DataRenderer(object):
             timeStamp = datetime.datetime.strptime(log.get('timeStamp'), "%Y-%m-%d-%H-%M")
             timeStamp_list.append(timeStamp.hour)
         # print(f'{data_list}|{timeStamp_list}')
-        plt.figure(dpi=200)
+        plt.figure(dpi=200),
         plt.suptitle(varName, fontsize='large')
+        plt.xlabel('Time (/hr)', loc='right'), plt.ylabel('bikeCount (/count)', loc='top')
+        plt.tick_params(axis='x', size=15)
         plt.bar(timeStamp_list, data_list)
-        plt.tight_layout()
+
+        plt.tight_layout(pad=2)
         plt.show()
         pass
+
+    @staticmethod
+    def data_pie(data_dict: dict):
+        """
+        draw pie
+        :param data_dict:
+        :return:
+        """
+        AllBikeCount = data_dict.get('HALL_bike_sum')
+        ignore_GATE = True
+        labels = list(data_dict.keys())[2:-1]  # 定义标签
+        if ignore_GATE:
+            temp = []
+            for label in labels:
+                if 'GATE' not in label and label != 'COLONY_AREA':
+                    temp.append(label)
+            labels = temp
+
+        sets = []  # a list to store the AREA bike COUNT data
+        for label in labels:
+            sets.append(data_dict.get(label))
+
+        explode = [0] * (len(labels))  # 突出显示，这里仅仅突出显示第二块（即'Hogs'）
+        explode[0] += 0.05
+
+        plt.figure(dpi=200)
+        plt.pie(sets, explode=explode, labels=labels, autopct='%1.1f%%', startangle=90)
+
+        plt.legend(loc=1, prop={'size': 6})
+
+        plt.title('BikeDistributed PIE', weight="bold")
+        plt.axis('equal')  # 显示为圆（避免比例压缩为椭圆）
+        plt.tight_layout()
+        plt.show()
 
     def load_log(self):
         load_counter = 0
@@ -55,9 +92,13 @@ class DataRenderer(object):
                 continue
             self.var_line_map(key)
 
+    def all_pie(self):
+        for log in self.all_data_log:
+            self.data_pie(log)
+
 
 if __name__ == '__main__':
-    deal_path = 'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\\2022-11\\15'
+    deal_path = 'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\\2022-11\\16'
     render = DataRenderer(deal_path)
-    render.all_map()
+    render.all_pie()
     pass
