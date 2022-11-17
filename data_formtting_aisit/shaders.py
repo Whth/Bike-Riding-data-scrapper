@@ -98,7 +98,7 @@ class DataRenderer(object):
 
 
 if __name__ == '__main__':
-    deal_path = 'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\\2022-11\\17'
+    deal_path = 'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\\2022-11\\18'
     render = DataRenderer(deal_path)
     render.all_map()
     pass

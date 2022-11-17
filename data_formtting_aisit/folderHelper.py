@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 
@@ -57,6 +58,17 @@ def open_CurTime_folder(rootFolder: str = ASSET_ROOT_FOLDER, CREATES_basic_dataf
         raise FileNotFoundError
 
 
+def fix_format(filename: str):
+    new_f = []
+    with open(filename, mode='r') as f:
+        for line in f.readlines():
+            new_f.append(copy.deepcopy(line.replace('\t\n', '\n')))
+        print(f'readlines: {len(new_f)}')
+    with open(filename, mode='w') as f:
+        f.writelines(new_f)
+
+
 if __name__ == '__main__':
     print(open_CurTime_folder())
+    fix_format('L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\\2022-11\\16\\allBikes.csv')
     pass

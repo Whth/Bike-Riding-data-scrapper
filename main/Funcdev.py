@@ -212,7 +212,7 @@ def dumpBike_data(bike_data: dict, file_dir: str) -> bool:
     with open(path, mode='a+') as f:
         for bike in bike_data.keys():
             dataBody: list = bikes_dict.get(bike)
-            line = f'{dataBody[2]}\t{bike}\t{dataBody[0]}\t{dataBody[1]}\t\n'
+            line = f'{dataBody[2]}\t{bike}\t{dataBody[0]}\t{dataBody[1]}\n'
 
             f.write(line)
     return True
