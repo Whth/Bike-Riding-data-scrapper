@@ -389,7 +389,7 @@ class TangleScrapper(object):
             if bikeNo_dict.get(bike['bikeNo']):
                 bike_info = bikeNo_dict[bike['bikeNo']]
                 bike_info[0], bike_info[1] = bike['lng'], bike['lat']
-                # timeStamp don't move
+                # timeStamp don't drive
                 bike_info[3] += 1
             else:
                 bikeNo_dict[bike['bikeNo']] = [bike['lng'], bike['lat'], bike['timeStamp'], 1]  # create if it not
