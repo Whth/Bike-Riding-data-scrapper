@@ -8,6 +8,9 @@ from folderHelper import bikeData_log_file_name
 
 
 class DataRenderer(object):
+    """
+    simply render the log file data
+    """
 
     def __init__(self, dataRoot: str):
         self.dataRoot = dataRoot
@@ -18,9 +21,10 @@ class DataRenderer(object):
         print(f'{self.var_log_path}')
 
         if len(self.all_data_log):
+            # get the data set name
             self.dataKeys = self.all_data_log[0].keys()
 
-    def var_line_map(self, varName: str):
+    def var_line_map(self, varName: str, SAVE_IMG_FOLDER: str == ''):
         data_list = []
         timeStamp_list = []
 
@@ -36,6 +40,11 @@ class DataRenderer(object):
         plt.bar(timeStamp_list, data_list)
 
         plt.tight_layout(pad=2)
+        if SAVE_IMG_FOLDER:
+            file_path = fr'{SAVE_IMG_FOLDER}\{varName}.png'
+
+            print(f'save at {file_path}')
+            plt.savefig(file_path)
         plt.show()
         pass
 
@@ -86,11 +95,15 @@ class DataRenderer(object):
         else:
             raise FileNotFoundError
 
-    def all_map(self):
+    def all_map(self, SAVE_IMG_FOLDER: str = ''):
+        if os.path.exists(SAVE_IMG_FOLDER):
+            pass
+        else:
+            os.makedirs(SAVE_IMG_FOLDER)
         for key in self.dataKeys:
             if key == 'timeStamp':
                 continue
-            self.var_line_map(key)
+            self.var_line_map(key, SAVE_IMG_FOLDER)
 
     def all_pie(self):
         for log in self.all_data_log:
@@ -98,7 +111,9 @@ class DataRenderer(object):
 
 
 if __name__ == '__main__':
-    deal_path = 'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\\2022-11\\18'
-    render = DataRenderer(deal_path)
-    render.all_map()
-    pass
+    from folderHelper import directView_folder_name
+
+    for daySerial in range(13, 20):
+        deal_path = rf'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\2022-11\{daySerial}'
+        render = DataRenderer(deal_path)
+        render.all_map(SAVE_IMG_FOLDER=rf'{deal_path}\{directView_folder_name}')

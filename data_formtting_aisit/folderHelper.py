@@ -13,6 +13,8 @@ phoneNumber_file_pdir = 'main/'
 phoneNumber_file_path = ROOT + phoneNumber_file_pdir + phoneNumber_file_name
 
 background_img_folder = ASSET_ROOT_FOLDER + 'img/'
+
+directView_folder_name = 'directView'
 """
 noticing that the phone number given token does not get expired immediately
 
