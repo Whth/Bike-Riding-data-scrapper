@@ -70,7 +70,76 @@ def fix_format(filename: str):
         f.writelines(new_f)
 
 
+def concatenate_txt_files(filenames, output_path):
+    """
+    put all data together
+    :param filenames:
+    :return:
+    """
+
+    with open(output_path, 'w') as outfile:
+        for fname in filenames:
+            with open(fname) as infile:
+                outfile.write(infile.read())
+
+
+def merge_logs(startDays: int, endDays: int) -> str:
+    """
+    only work on data in Nov
+    tail not included
+    :param startDays:
+    :param endDays:
+    :return:
+    """
+    assert endDays > startDays >= 13
+
+    log_list = []
+    year_month_folder = r'2022-11'
+    baseDir = rf"{ASSET_ROOT_FOLDER}\{year_month_folder}"
+    for i in range(startDays, endDays):
+        log_list.append(rf'{baseDir}\{i}\{bikeData_log_file_name}')
+
+    output_path = rf'{baseDir}\{startDays}-{endDays}merged_logs.txt'
+    concatenate_txt_files(log_list, output_path)
+    return output_path
+
+
+def merged_log_to_csv(log_path: str):
+    """
+
+    :param log_path:
+    :param out_put_csv_path:
+    :return:
+    """
+    import json
+    """
+    {"HALL_bike_sum": 1780,
+    "WANDERING_bike_sum": 460, 
+    "SOUTHERN_SCH": 520, 
+    "NORTHERN_SCH": 358,
+    "DE_AREA": 226,
+    "C_AREA": 105,
+    "MALL_AREA": 111,
+    "timeStamp": "2022-11-13-11-38"}
+    """
+    with open(log_path, 'r') as f:
+        lines = f.readlines()
+    assert len(lines) > 0
+    keys = json.loads(lines[0]).keys()
+
+    merged_dict = {key: [] for key in keys}
+
+    for i, line in enumerate(lines):
+        log_data_dict = json.loads(line)
+        for key in keys:
+            merged_dict.get(key).append(log_data_dict.get(key))
+    import pandas
+
+    df = pandas.DataFrame.from_dict(merged_dict)
+    out_put_csv_path = log_path.replace('.txt', '.csv')
+    df.to_csv(out_put_csv_path, sep=',')
+    print('done')
+
+
 if __name__ == '__main__':
-    print(open_CurTime_folder())
-    fix_format('L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\\2022-11\\16\\allBikes.csv')
-    pass
+    merged_log_to_csv(merge_logs(13, 20))
