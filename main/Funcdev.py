@@ -52,40 +52,6 @@ def getAllBike(phoneBook_path, loc_list: list = BOUND_LOCATION,
 
 # <editor-fold desc="MAIN method">
 
-
-def run_every_other_interval(dict_list: list, scanStep: float = 0.0017, scanInterval: float = 180.,
-                             loc_list: list = BOUND_LOCATION, notifications: bool = False, filter_ON: bool = False,
-                             USE_NEW_VERSION: bool = False, WriteDownLog: bool = False, dispPlayData: bool = False):
-    if scanStep < 0.0011:
-        raise Exception
-    if scanInterval < 60:
-        warnings.warn('frequency scan interval exceeded')
-        scanInterval = 60
-    """
-    功能：每隔两分钟获取一次高教园的所有单车信息并保存。
-
-    """
-    MODE = 1
-    while True:
-        try:
-            round_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")  # for each init time scan
-            print(f'initialized {round_timestamp}')
-            nextTime = (datetime.datetime.now() + datetime.timedelta(minutes=3))
-            if MODE == 1:
-                Points, bikes = getAllBike(dict_list, stepLen=scanStep,
-                                           loc_list=loc_list,
-                                           USE_NEW_VERSION=USE_NEW_VERSION
-                                           , USE_TREE=True)  # return list of all bikes with dict format
-                shaders = BikeDataShaders(bike_list=bikes)
-                shaders.scanned_points(Points, 'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\img\s.jpg')
-
-        except KeyboardInterrupt:
-
-            print('Program EXITED')
-
-            break
-
-
 # </editor-fold>
 
 class BikeDataShaders:
@@ -238,9 +204,13 @@ if __name__ == "__main__":
     while True:
         try:
             try:
-                scannedPoint, bikes_dict = crapper.tree_slice(phoneBook_path=book_Path, return_bike_info=True,
-                                                              logON=False,
-                                                              SEARCH_ALL=True)
+                scannedPoint, bikes_dict = crapper.tree_slice(phonebook_path=book_Path, return_bike_info=True,
+                                                              log_on=False, hall_timestamp=datetime.datetime.now(),
+                                                              search_all=True)
+            except KeyboardInterrupt:
+                print("Interrupted,stop trying detection")
+                break
+
             except:
                 print("Exception")
                 Countdown(60 + 60 * random.random())
@@ -264,8 +234,7 @@ if __name__ == "__main__":
                                         SAVE_IMG_PATH=pic_folder + 'BikeDistributedHotMap-' + basic_name)
             except:
                 warnings.warn(f'Unable to save img')
-                pass
-
+                warnings.warn(f'skip saving img,going with another loop')
             print(f"try save at {pic_folder}")
             print('SLEEPING')
             if datetime.datetime.now().hour > 5:

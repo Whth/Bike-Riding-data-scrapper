@@ -1,9 +1,9 @@
 import copy
-import datetime
 import json
 import random
 import time
 import warnings
+from datetime import datetime
 
 import numpy as np
 import requests
@@ -68,6 +68,16 @@ def check_point_in_tangle(point: list, tangle: list) -> bool:
 
     :param point:
     :param tangle:
+
+
+
+
+
+
+
+
+
+
     :return:
     """
     temp = [float(point[0]), float(point[1])]
@@ -80,13 +90,15 @@ def check_point_in_tangle(point: list, tangle: list) -> bool:
 
 
 def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False,
-                      INSERT_TIMESTAMP: bool = False, RETURN_DENSITY: bool = False, BAD_CHECK=True, Hold_retry=False):
+                      INSERT_TIMESTAMP: bool = False, TIMESTAMP: datetime = None, RETURN_DENSITY: bool = False,
+                      BAD_CHECK=True, Hold_retry=False):
     """
     功能：获取某一经纬度周边500(?)米的所有单车信息
     1.传入经纬度和token值
     2.如果顺利，返回经纬度周围500米的所有单车信息，否则显示异常信息
-
     """
+    assert (INSERT_TIMESTAMP is False and TIMESTAMP is None) or (
+            INSERT_TIMESTAMP is True and TIMESTAMP is not None), "forget match INSERT_TIMESTAMP and TIMESTAMP?"
 
     req_load = {"version": "4.2.3", "from": "h5", "systemCode": 63, "platform": 1,
                 "action": "user.ride.nearBikes",
@@ -149,10 +161,10 @@ def getBikes_reformed(point_coordinates: list, token: str, USE_NEW_VERSION=False
             if int(Bike_raw_data_dict['data'][0].get('bikeNo')) < 9000000000:
                 print(Bike_raw_data_dict['data'])
                 # print(Bike_raw_data_dict['data'][0].get('bikeNo'))
-                warnings.warn(f'MAY have data corruption {datetime.datetime.now()}')
+                warnings.warn(f'MAY have data corruption {datetime.now()}')
 
         if INSERT_TIMESTAMP:  # insert timestamp into data
-            timeStamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')  # timestamp for this lap
+            timeStamp = TIMESTAMP.strftime('%Y-%m-%d %H:%M')  # timestamp for this lap
             for bike_dict in bike_data_list:
                 bike_dict[time_stamp_key] = timeStamp  # inserting
         if RETURN_DENSITY:
@@ -229,19 +241,20 @@ class TangleScrapper(object):
             random.shuffle(node_list)
         return node_list
 
-    def tree_slice(self, phoneBook_path, usingMethod: int = 1, return_bike_info: bool = False,
-                   logON=True, SEARCH_ALL=True):
+    def tree_slice(self, phonebook_path, using_method: int = 1, return_bike_info: bool = False,
+                   log_on=True, search_all=True, hall_timestamp: datetime = datetime.now()):
         """
         in book out bike_info and points Scanned
-        :param SEARCH_ALL:
-        :param logON:
-        :param phoneBook_path:
-        :param usingMethod:
+        :type hall_timestamp: object
+        :param search_all:
+        :param log_on:
+        :param phonebook_path:
+        :param using_method:
         :param return_bike_info:
         :return:
         """
 
-        if usingMethod == 1:
+        if using_method == 1:
             """
             dict for de duplicate
 
@@ -252,9 +265,9 @@ class TangleScrapper(object):
             HALL_SCAN_INTERVAL = 1
             last_time = time.time()
 
-            init_time = datetime.datetime.now()
+            init_time = datetime.now()
 
-            Book = PhoneBook_Manager(phoneBook_path)
+            Book = PhoneBook_Manager(phonebook_path)
 
             bikeNo_dict = {}  # storing the lng and lat and detected times
             # data_formatting = ['lng', 'lat', 'detectedBikes']
@@ -269,12 +282,13 @@ class TangleScrapper(object):
                 if time.time() - last_time < HALL_SCAN_INTERVAL:  # to control HALL scan frequency
                     time.sleep(HALL_SCAN_INTERVAL)
 
-                point_viewed_bikes = getBikes_reformed(init_point, token, INSERT_TIMESTAMP=True)  # requests
+                point_viewed_bikes = getBikes_reformed(init_point, token, INSERT_TIMESTAMP=True,
+                                                       TIMESTAMP=hall_timestamp)  # requests
                 bikesCount = len(point_viewed_bikes)
 
                 print(f'[{serial + 1}/{len(init_points)}] [{bikesCount}] scanned '
                       f'{init_points[serial]}'
-                      f'TimeConsumed: {datetime.datetime.now() - init_time} '
+                      f'TimeConsumed: {datetime.now() - init_time} '
                       f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token}')
 
                 if bikesCount > 0:  # for point that is surrounded by multiple bikes
@@ -284,7 +298,7 @@ class TangleScrapper(object):
                     location = [round(float(a_random_bike['lng']), loc_precision),
                                 round(float(a_random_bike['lat']), loc_precision)]
 
-                    if logON:
+                    if log_on:
                         print(f'chose bike that sits {location}')
                     if check_point_in_tangle(location, self.loc_list) and location not in root_points:
                         # preventing same location and external location
@@ -311,7 +325,7 @@ class TangleScrapper(object):
 
             print(f'scan second layer')
 
-            if SEARCH_ALL:
+            if search_all:
                 virtual_bound = True
                 search_stack = []
                 last_stack = []
@@ -341,7 +355,8 @@ class TangleScrapper(object):
                         if time.time() - last_time < HALL_SCAN_INTERVAL:  # to control HALL scan frequency
                             time.sleep(HALL_SCAN_INTERVAL)
 
-                        point_viewed_bikes = getBikes_reformed(point, token, INSERT_TIMESTAMP=True)
+                        point_viewed_bikes = getBikes_reformed(point, token, INSERT_TIMESTAMP=True,
+                                                               TIMESTAMP=hall_timestamp)
                         self.merge_dedup(bikeNo_dict, point_viewed_bikes)  # merge them add up the detectedCount
 
                         if virtual_bound:
@@ -349,7 +364,7 @@ class TangleScrapper(object):
 
                         print(
                             f'batch|{stack_push_counter}| [{i}/{len(search_stack)}] {point} [{len(point_viewed_bikes)}] '
-                            f'TimeConsumed: {datetime.datetime.now() - init_time} '
+                            f'TimeConsumed: {datetime.now() - init_time} '
                             f'AllDetectedBikeCount: {len(bikeNo_dict)} |useToken: {token} ')
 
                     self.bike_count_details(bikeNo_dict, statistics_list_len=30)
@@ -363,7 +378,7 @@ class TangleScrapper(object):
                     init_points.extend(scanned_points)
                     time.sleep(3)
 
-            consumedTime = datetime.datetime.now() - init_time
+            consumedTime = datetime.now() - init_time
             print(f'Extracted point list length: {len(init_points)}')
             print(f'Extracted bike number: {len(bikeNo_dict)}')
             print(f'Consumed time: {consumedTime}')
@@ -373,7 +388,7 @@ class TangleScrapper(object):
                 return init_points, bikeNo_dict
             return init_points
 
-        if usingMethod == 2:
+        if using_method == 2:
             pass
 
     @staticmethod

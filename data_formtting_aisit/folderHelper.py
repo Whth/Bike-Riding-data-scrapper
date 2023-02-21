@@ -83,7 +83,7 @@ def concatenate_txt_files(filenames, output_path):
                 outfile.write(infile.read())
 
 
-def merge_logs(startDays: int, endDays: int) -> str:
+def merge_logs(startDays: int, endDays: int, except_list: list) -> str:
     """
     only work on data in Nov
     tail not included
@@ -97,9 +97,14 @@ def merge_logs(startDays: int, endDays: int) -> str:
     year_month_folder = r'2022-11'
     baseDir = rf"{ASSET_ROOT_FOLDER}\{year_month_folder}"
     for i in range(startDays, endDays):
+        if i in except_list:
+            continue
         log_list.append(rf'{baseDir}\{i}\{bikeData_log_file_name}')
 
-    output_path = rf'{baseDir}\{startDays}-{endDays}merged_logs.txt'
+    if len(except_list):
+        output_path = rf'{baseDir}\{startDays}-{endDays}merged_logs{len(except_list)}ignored.txt'
+    else:
+        output_path = rf'{baseDir}\{startDays}-{endDays}merged_logs.txt'
     concatenate_txt_files(log_list, output_path)
     return output_path
 
@@ -137,9 +142,11 @@ def merged_log_to_csv(log_path: str):
 
     df = pandas.DataFrame.from_dict(merged_dict)
     out_put_csv_path = log_path.replace('.txt', '.csv')
-    df.to_csv(out_put_csv_path, sep=',')
+    df.to_csv(out_put_csv_path, sep=',', index=False)
     print('done')
 
 
 if __name__ == '__main__':
-    merged_log_to_csv(merge_logs(13, 20))
+    ex_list = []
+    merged_log_to_csv(merge_logs(15, 19, ex_list))
+    merged_log_to_csv(r'L:\pycharm projects\Bike_Scrapper\RecoveredBikeData\2022-11\19_test.txt')
