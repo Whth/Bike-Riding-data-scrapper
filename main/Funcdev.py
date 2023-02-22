@@ -197,7 +197,7 @@ if __name__ == "__main__":
     manager.update_all_token()
     pusher = push_helper.WxPusher_comp()
 
-    crapper = TangleScrapper(stepLen=0.00146)
+    crapper = TangleScrapper(stepLen=0.00138)
     shader = BikeDataShaders()
     # shader.AREA_divide_img(INVESTIGATE_AREA)
 

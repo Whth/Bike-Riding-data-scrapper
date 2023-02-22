@@ -10,7 +10,7 @@ bikeData_log_file_name = "bikes_variant.log"
 
 phoneNumber_file_name = 'phoneBook.json'
 phoneNumber_file_pdir = 'main/'
-phoneNumber_file_path = ROOT + phoneNumber_file_pdir + phoneNumber_file_name
+phoneNumber_file_path: str = ROOT + phoneNumber_file_pdir + phoneNumber_file_name
 
 background_img_folder = ASSET_ROOT_FOLDER + 'img/'
 

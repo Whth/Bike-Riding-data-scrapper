@@ -334,7 +334,7 @@ class TangleScrapper(object):
                 random.shuffle(search_stack)
 
                 stack_push_counter = 0
-                min_increment = 3
+                min_increment = 12
 
                 while len(search_stack) > 0:  # means there may be un scanned points
 
