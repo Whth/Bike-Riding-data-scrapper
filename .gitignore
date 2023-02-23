@@ -1,6 +1,7 @@
-!/RecoveredBikeData/
+RecoveredBikeData/*
+processing/*
 /main/phoneBook.json
-!/phone_bin
-!/.idea
+phone_bin
+.idea
 *.xml
 *.iml
