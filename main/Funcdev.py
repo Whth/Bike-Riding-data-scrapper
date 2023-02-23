@@ -194,7 +194,7 @@ def Countdown(seconds):
 
 if __name__ == "__main__":
     manager = PhoneBook_Manager(book_path=book_Path)
-    manager.update_all_token()
+    # manager.update_all_token()
     pusher = push_helper.WxPusher_comp()
 
     crapper = TangleScrapper(stepLen=0.00138)
